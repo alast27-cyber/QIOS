@@ -104,7 +104,10 @@
     function addParticle(name) { if (!particleNameMap.has(name)) { const p=new QuantumParticle(name); particles.push(p); particleNameMap.set(name, p); log(`Particle "${name}" created.`, 'info'); draw(); }}
     function getParticle(name) { return particleNameMap.get(name); }
     
-    const socket = io("https://qios-2.onrender.com");
+    // --- STABILITY UPGRADE ---
+    const socket = io("https://qios-2.onrender.com", {
+        transports: ['websocket'] // Force WebSocket transport only
+    });
 
     function log(message, type = 'info') { const p = document.createElement('p'); p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`; if (type === 'error') p.className = 'text-red-400'; else if (type === 'warn') p.className = 'text-yellow-400'; else p.className = 'text-cyan-400'; nodeLog.appendChild(p); nodeLog.scrollTop = nodeLog.scrollHeight; }
 

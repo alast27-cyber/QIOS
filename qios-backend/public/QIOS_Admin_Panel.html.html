@@ -75,12 +75,17 @@
             }
         };
 
-        const adminSocket = io("https://qios-2.onrender.com");
+        // --- STABILITY UPGRADE ---
+        const adminSocket = io("https://qios-2.onrender.com", {
+            transports: ['websocket'] // Force WebSocket transport only
+        });
+
         adminSocket.on('connect', () => {
             elems.simLogList.innerHTML = '';
             addLogEntry({ type: 'info', message: 'Connecting to Back Office...' });
             adminSocket.emit('register_admin');
         });
+
         adminSocket.on('system_update', (data) => {
             elems.nodes.textContent = data.nodeCount;
             elems.trace.val.textContent = Math.round(data.stats.traceability);
@@ -89,6 +94,7 @@
             elems.contra.prog.style.width = `${(data.stats.contradiction / 620) * 100}%`;
             updateQuarantineList(data.quarantined);
         });
+
         adminSocket.on('log_message', (log) => { addLogEntry(log); });
         adminSocket.on('disconnect', () => { addLogEntry({ type: 'warn', message: 'Connection to Back Office lost.' }); });
     });
