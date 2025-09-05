@@ -5,9 +5,7 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
-});
+const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
 const PORT = process.env.PORT || 3000;
 
@@ -17,31 +15,67 @@ let connectedNodes = new Map();
 let adminSockets = new Set();
 let systemStats = { traceability: 101, contradiction: 599, phase: 1 };
 
-// --- ADVANCED PARSER ---
+// --- GUARDIAN AI MODULE ---
+const guardianAI = {
+    activityLog: new Map(),
+    MEASURE_THRESHOLD: 5,
+    TIME_WINDOW_MS: 5000,
+    
+    logActivity(nodeId, command) {
+        if (command !== 'measure') return;
+
+        if (!this.activityLog.has(nodeId)) {
+            this.activityLog.set(nodeId, []);
+        }
+
+        const now = Date.now();
+        const nodeTimestamps = this.activityLog.get(nodeId);
+        nodeTimestamps.push(now);
+
+        // Keep the log within the time window
+        const recentTimestamps = nodeTimestamps.filter(ts => now - ts < this.TIME_WINDOW_MS);
+        this.activityLog.set(nodeId, recentTimestamps);
+
+        if (recentTimestamps.length >= this.MEASURE_THRESHOLD) {
+            this.triggerAlert(nodeId);
+            this.activityLog.set(nodeId, []); // Reset after triggering
+        }
+    },
+    
+    triggerAlert(nodeId) {
+        const alertMessage = `GuardianAI Alert: Measurement spam detected from Node ${nodeId.substring(0,6)}...`;
+        console.log(alertMessage);
+        io.to('admins').emit('log_message', { type: 'warn', message: alertMessage });
+        // In the future, this could trigger a quarantine
+    }
+};
+
+// --- ADVANCED PARSER & ORCHESTRATOR ---
 async function parseAndOrchestrate(programCode, requestingNodeId) {
     const lines = programCode.split('\n').map(line => line.trim().split('//')[0]).filter(line => line);
     const nodeList = Array.from(connectedNodes.keys());
-    let particleLocations = new Map(); // Track which node owns which particle
+    let particleLocations = new Map();
 
     io.to('admins').emit('log_message', {type: 'info', message: `Orchestration started by ${requestingNodeId.substring(0,6)}...`});
 
     for (const line of lines) {
         const parts = line.split(/\s+/);
         const command = parts[0];
+        const particleName = parts[1]?.replace(';', '').replace(',', '');
+        
+        // AI Monitoring Hook
+        const ownerNodeId = particleLocations.get(particleName);
+        if(ownerNodeId) guardianAI.logActivity(ownerNodeId, command);
 
         if (command === 'particle') {
-            const particleName = parts[1].replace(';', '');
-            // Simple round-robin assignment for particles to nodes
             const assignedNodeId = nodeList[particleLocations.size % nodeList.length];
             particleLocations.set(particleName, assignedNodeId);
             io.to(assignedNodeId).emit('execute_command', { command: 'create_particle', target: particleName });
-            await new Promise(r => setTimeout(r, 200)); // Network delay simulation
+            await new Promise(r => setTimeout(r, 200));
         }
         else if (command === 'hadamard') {
-            const particleName = parts[1].replace(';', '');
-            const nodeId = particleLocations.get(particleName);
-            if (nodeId) {
-                io.to(nodeId).emit('execute_command', { command: 'apply_hadamard', target: particleName });
+            if (ownerNodeId) {
+                io.to(ownerNodeId).emit('execute_command', { command: 'apply_hadamard', target: particleName });
                 await new Promise(r => setTimeout(r, 200));
             }
         }
@@ -52,11 +86,12 @@ async function parseAndOrchestrate(programCode, requestingNodeId) {
             const targetNodeId = particleLocations.get(targetName);
 
             if (controlNodeId && targetNodeId) {
-                io.to('admins').emit('log_message', {type: 'info', message: `Orchestrating CNOT: ${controlName} -> ${targetName}`});
-                // In a real system, nodes would communicate directly. Here, we simulate it.
-                // For this simulation, we'll just log that it happened.
-                io.to(controlNodeId).emit('log_message', { type: 'warn', message: `CNOT control initiated on ${controlName}.` });
-                io.to(targetNodeId).emit('log_message', { type: 'warn', message: `CNOT target received on ${targetName}.` });
+                io.to('admins').emit('log_message', {type: 'info', message: `Orchestrating Entanglement: ${controlName} <> ${targetName}`});
+                
+                // Send specific entanglement commands to the nodes
+                io.to(controlNodeId).emit('execute_command', { command: 'entangle', target: controlName, partnerId: targetNodeId });
+                io.to(targetNodeId).emit('execute_command', { command: 'entangle', target: targetName, partnerId: controlNodeId });
+
                 await new Promise(r => setTimeout(r, 500));
             }
         }
@@ -66,8 +101,6 @@ async function parseAndOrchestrate(programCode, requestingNodeId) {
 
 
 io.on('connection', (socket) => {
-    // console.log(`A user connected: ${socket.id}`);
-    
     socket.on('register_admin', () => {
         console.log(`Admin UI registered: ${socket.id}`);
         adminSockets.add(socket.id);
@@ -78,34 +111,30 @@ io.on('connection', (socket) => {
 
     socket.on('register_node', () => {
         console.log(`Quantum Node registered: ${socket.id}`);
-        connectedNodes.set(socket.id, { id: socket.id, particles: [] });
+        connectedNodes.set(socket.id, { id: socket.id });
         socket.join('nodes');
-        socket.emit('log_message', { message: `Registered with Back Office. Ready for commands.` });
-        io.to('admins').emit('log_message', { type: 'success', message: `Node Connected: ${socket.id.substring(0, 6)}... Total nodes: ${connectedNodes.size}` });
+        socket.emit('log_message', { message: `Registered. Ready for commands.` });
+        io.to('admins').emit('log_message', { type: 'success', message: `Node Connected: ${socket.id.substring(0, 6)}... Total: ${connectedNodes.size}` });
     });
 
     socket.on('run_program', (data) => {
         console.log(`Received program from node ${socket.id}`);
         if (connectedNodes.size < 2) {
-            io.to(socket.id).emit('log_message', { type: 'error', message: 'Error: At least 2 nodes must be connected.' });
+            io.to(socket.id).emit('log_message', { type: 'error', message: 'Error: At least 2 nodes required.' });
             return;
         }
-        // Use the new advanced parser
         parseAndOrchestrate(data.code, socket.id);
     });
-    
+
     socket.on('pong', () => {});
 
     socket.on('disconnect', () => {
-        // console.log(`User disconnected: ${socket.id}`);
         const wasNode = connectedNodes.has(socket.id);
         if (wasNode) {
             connectedNodes.delete(socket.id);
-            io.to('admins').emit('log_message', { type: 'warn', message: `Node Disconnected: ${socket.id.substring(0, 6)}... Total nodes: ${connectedNodes.size}` });
+            io.to('admins').emit('log_message', { type: 'warn', message: `Node Disconnected: ${socket.id.substring(0, 6)}... Total: ${connectedNodes.size}` });
         }
-        if (adminSockets.has(socket.id)) {
-            adminSockets.delete(socket.id);
-        }
+        adminSockets.delete(socket.id);
     });
 });
     
@@ -116,7 +145,9 @@ setInterval(() => {
     io.to('admins').emit('system_update', updatePayload);
 }, 2500);
 
-setInterval(() => { io.emit('ping'); }, 20000);
+setInterval(() => {
+    io.emit('ping');
+}, 20000);
 
 server.listen(PORT, () => {
     console.log(`QIOS Back Office is running on http://localhost:${PORT}`);
