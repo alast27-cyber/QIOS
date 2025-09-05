@@ -35,7 +35,6 @@ io.on('connection', (socket) => {
         console.log(`Admin UI registered: ${socket.id}`);
         adminSockets.add(socket.id);
         socket.join('admins');
-        // Send a welcome message and the current node count
         socket.emit('log_message', { type: 'info', message: `Admin panel connected. Monitoring network.` });
         socket.emit('log_message', { type: 'info', message: `${connectedNodes.size} nodes currently online.` });
     });
@@ -46,12 +45,7 @@ io.on('connection', (socket) => {
         connectedNodes.set(socket.id, { id: socket.id, particles: [] });
         socket.join('nodes');
         socket.emit('log_message', { message: `Registered with Back Office. Ready for commands.` });
-        
-        // **BROADCAST TO ADMINS** that a new node has joined
-        io.to('admins').emit('log_message', { 
-            type: 'success', 
-            message: `Node Connected: ${socket.id.substring(0, 6)}... Total nodes: ${connectedNodes.size}` 
-        });
+        io.to('admins').emit('log_message', { type: 'success', message: `Node Connected: ${socket.id.substring(0, 6)}... Total nodes: ${connectedNodes.size}` });
     });
 
     // --- Program Execution Logic ---
@@ -59,21 +53,17 @@ io.on('connection', (socket) => {
         console.log(`Received program from node ${socket.id}`);
         const nodeList = Array.from(connectedNodes.keys());
 
-        // **CRITICAL CHECK**
         if (nodeList.length < 2) {
             const errorMsg = 'Error: At least 2 nodes must be connected to run this protocol.';
             console.log(errorMsg);
-            // Send error message ONLY to the node that requested the run
             io.to(socket.id).emit('log_message', { type: 'error', message: errorMsg });
             return;
         }
 
-        // Orchestration logic proceeds if check passes
         const aliceNodeId = socket.id;
         const bobNodeId = nodeList.find(id => id !== aliceNodeId);
 
         io.to('admins').emit('log_message', {type: 'info', message: `Orchestrating entanglement between ${aliceNodeId.substring(0,6)}... and ${bobNodeId.substring(0,6)}...`});
-
         io.to(aliceNodeId).emit('log_message', { type: 'warn', message: 'Orchestrator: Creating particle alice_q1 on your node.' });
         io.to(bobNodeId).emit('log_message', { type: 'warn', message: 'Orchestrator: Creating particle bob_q1 on your node.' });
         
@@ -83,26 +73,28 @@ io.on('connection', (socket) => {
         }, 1000);
         
          setTimeout(() => {
-            io.to('aliceNodeId').emit('log_message', { type: 'warn', message: 'Orchestrator: Initiating CNOT between your alice_q1 and bob_q1...' });
+            io.to(aliceNodeId).emit('log_message', { type: 'warn', message: 'Orchestrator: Initiating CNOT between your alice_q1 and bob_q1...' });
             io.to(bobNodeId).emit('log_message', { type: 'warn', message: 'Orchestrator: Receiving CNOT from another node...' });
             io.to('admins').emit('log_message', {type: 'success', message: `Entanglement protocol successful.`});
         }, 2000);
+    });
+    
+    // --- NEW: HEARTBEAT PONG LISTENER ---
+    // Listens for the client's heartbeat response.
+    socket.on('pong', () => {
+        // This confirms the client is still alive. We don't need to do anything here,
+        // but it's useful for debugging or tracking latency in the future.
+        // console.log(`Received pong from ${socket.id}`);
     });
 
     // --- Disconnection Logic ---
     socket.on('disconnect', () => {
         console.log(`User disconnected: ${socket.id}`);
         const wasNode = connectedNodes.has(socket.id);
-        
         if (wasNode) {
             connectedNodes.delete(socket.id);
-            // **BROADCAST TO ADMINS** that a node has left
-            io.to('admins').emit('log_message', { 
-                type: 'warn', 
-                message: `Node Disconnected: ${socket.id.substring(0, 6)}... Total nodes: ${connectedNodes.size}` 
-            });
+            io.to('admins').emit('log_message', { type: 'warn', message: `Node Disconnected: ${socket.id.substring(0, 6)}... Total nodes: ${connectedNodes.size}` });
         }
-        
         if (adminSockets.has(socket.id)) {
             adminSockets.delete(socket.id);
         }
@@ -111,18 +103,17 @@ io.on('connection', (socket) => {
     
 // --- Continuous Simulation Loop for Admin Panel ---
 setInterval(() => {
-    // Update stats
     systemStats.traceability += Math.random() * 2 - 1;
     systemStats.contradiction += Math.random() * 4 - 2;
-
-    const updatePayload = {
-        stats: systemStats,
-        nodeCount: connectedNodes.size
-    };
-
-    // Broadcast the update to all connected admin panels
+    const updatePayload = { stats: systemStats, nodeCount: connectedNodes.size };
     io.to('admins').emit('system_update', updatePayload);
 }, 2500);
+
+// --- NEW: HEARTBEAT PING SENDER ---
+// This keeps all client connections alive.
+setInterval(() => {
+    io.emit('ping');
+}, 20000); // Every 20 seconds
 
 server.listen(PORT, () => {
     console.log(`QIOS Back Office is running on http://localhost:${PORT}`);
