@@ -27,7 +27,9 @@
         .btn { background: #374151; color: var(--text-primary); border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem 1.2rem; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; } .btn:hover { filter: brightness(1.2); } .btn.primary { background: var(--accent-blue); }
         .q-sim-item { margin-bottom: 2rem; } .q-sim-item-header { display: flex; justify-content: space-between; align-items: flex-start; } .q-sim-item-text-group { } .q-sim-item-title { margin: 0; color: var(--text-primary); font-weight: 500; font-size: 1rem; } .q-sim-item-subtitle { margin: 0; font-size: 0.8rem; color: var(--text-secondary); } .q-sim-item-value { font-size: 1.1rem; color: var(--text-primary); font-weight: 500; }
         #simulation-log-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; font-size: 0.9rem; } #simulation-log-list li { display: flex; align-items: center; margin-bottom: 0.75rem; } #simulation-log-list li .checkbox { width: 16px; height: 16px; margin-right: 0.75rem; border: 2px solid; border-radius: 4px; display: flex; align-items: center; justify-content: center; } #simulation-log-list li .checkbox svg { width: 10px; height: 10px; stroke-width: 3; stroke: var(--text-primary); }
-        #simulation-log-list li.success { color: var(--accent-green); } #simulation-log-list li.success .checkbox { border-color: var(--accent-green); } #simulation-log-list li.warn { color: var(--accent-warn); } #simulation-log-list li.warn .checkbox { border-color: var(--accent-warn); } #simulation-log-list li.info { color: var(--accent-blue); } #simulation-log-list li.info .checkbox { border-color: var(--accent-blue); }
+        #simulation-log-list li.success { color: var(--accent-green); } #simulation-log-list li.success .checkbox { border-color: var(--accent-green); }
+        #simulation-log-list li.warn { color: var(--accent-warn); } #simulation-log-list li.warn .checkbox { border-color: var(--accent-warn); }
+        #simulation-log-list li.info { color: var(--accent-blue); } #simulation-log-list li.info .checkbox { border-color: var(--accent-blue); }
         @keyframes pulse { 0%, 100% { box-shadow: 0 0 15px var(--accent-cyan); } 50% { box-shadow: 0 0 25px var(--accent-cyan); } } .data-stream-circle.entangled { animation: pulse 2s infinite; }
     </style>
 </head>
@@ -47,55 +49,50 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- DOM Element Selectors ---
         const elems = {
             trace: { val: document.getElementById('stat-trace-value'), prog: document.getElementById('stat-trace-progress') },
             contra: { val: document.getElementById('stat-contra-value'), prog: document.getElementById('stat-contra-progress') },
             sanitization: { fg: document.getElementById('sanitization-progress-fg'), text: document.getElementById('sanitization-progress-text') },
             simLogList: document.getElementById('simulation-log-list')
         };
-
         const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 50;
         let sanitizationRate = 95;
 
-        // This function now adds LIVE messages from the server to the UI
         const addLogEntry = (log) => {
             const { type, message } = log;
             const li = document.createElement('li');
-            li.className = type; // e.g. 'success', 'warn', 'info'
-            
+            li.className = type;
             const checkSVG = `<svg viewBox="0 0 16 16"><path fill="none" d="M3.5 8.5l3 3l6-6" stroke="currentColor" stroke-width="2.5"/></svg>`;
-
-            li.innerHTML = `<div class="checkbox">${type === 'success' ? checkSVG : ''}</div><span>${message}</span>`;
+            const warnIcon = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+            
+            let iconHTML = '';
+            if (type === 'success') iconHTML = checkSVG;
+            else if (type === 'warn') iconHTML = warnIcon;
+            
+            li.innerHTML = `<div class="checkbox">${iconHTML}</div><span>${message}</span>`;
             elems.simLogList.prepend(li);
             if (elems.simLogList.children.length > 10) {
                 elems.simLogList.lastChild.remove();
             }
         };
 
-        // --- Socket.IO Client Logic ---
         const adminSocket = io("https://qios-2.onrender.com");
-
         adminSocket.on('connect', () => {
             elems.simLogList.innerHTML = '';
             addLogEntry({ type: 'info', message: 'Connecting to Back Office...' });
             adminSocket.emit('register_admin');
         });
-
         adminSocket.on('system_update', (data) => {
             const { stats } = data;
             elems.trace.val.textContent = Math.round(stats.traceability);
             elems.trace.prog.style.width = `${(stats.traceability / 120) * 100}%`;
             elems.contra.val.textContent = Math.round(stats.contradiction);
             elems.contra.prog.style.width = `${(stats.contradiction / 620) * 100}%`;
-            
-            sanitizationRate = (sanitizationRate + 95 + (Math.random() - 0.5)) / 2; // Smooth the value with slight fluctuation
+            sanitizationRate = (sanitizationRate + 95 + (Math.random() - 0.5)) / 2;
             sanitizationRate = Math.max(90, Math.min(100, sanitizationRate));
             updateCircularProgress(sanitizationRate);
         });
-
         adminSocket.on('log_message', (log) => { addLogEntry(log); });
-        
         adminSocket.on('disconnect', () => { addLogEntry({ type: 'warn', message: 'Connection to Back Office lost. Reconnecting...' }); });
 
         const updateCircularProgress = (percent) => {

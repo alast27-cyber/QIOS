@@ -32,6 +32,9 @@
                         <button id="runProgramBtn" class="btn">Run Program (Orchestrated)</button>
                         <button id="loadExampleBtn" class="btn bg-gray-600">Load Entanglement Example</button>
                     </div>
+                     <div class="mt-4">
+                        <button id="loadAiTestBtn" class="btn bg-yellow-600">Load AI Alert Test Program</button>
+                    </div>
                 </section>
                 <section>
                     <h2 class="text-xl font-semibold mb-3">Node Log</h2>
@@ -48,16 +51,15 @@
     </div>
 
 <script>
-    // --- UI Element Hooks ---
     const programEditor = document.getElementById('programEditor');
     const runProgramBtn = document.getElementById('runProgramBtn');
     const loadExampleBtn = document.getElementById('loadExampleBtn');
+    const loadAiTestBtn = document.getElementById('loadAiTestBtn');
     const nodeLog = document.getElementById('nodeLog');
     const connectionStatus = document.getElementById('connection-status');
     const canvas = document.getElementById('quantumCanvas');
     const ctx = canvas.getContext('2d');
 
-    // --- FULL QUANTUM SIMULATOR ENGINE (from original prototype) ---
     let particles = [];
     let particleNameMap = new Map();
 
@@ -75,13 +77,13 @@
             this.x = Math.random() * (canvas.width - 80) + 40;
             this.y = Math.random() * (canvas.height - 80) + 40;
             this.radius = 20;
-            this.alpha = new Complex(1, 0); // |0> state
-            this.beta = new Complex(0, 0);  // |1> state
+            this.alpha = new Complex(1, 0);
+            this.beta = new Complex(0, 0);
             this.measuredValue = null;
+            this.isEntangled = false;
         }
         applyHadamard() {
-            const oldAlpha = this.alpha;
-            const oldBeta = this.beta;
+            const oldAlpha = this.alpha, oldBeta = this.beta;
             const oneOverSqrt2 = new Complex(1 / Math.sqrt(2), 0);
             this.alpha = (oldAlpha.add(oldBeta)).mul(oneOverSqrt2);
             this.beta = (oldAlpha.sub(oldBeta)).mul(oneOverSqrt2);
@@ -106,6 +108,18 @@
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         particles.forEach(p => {
+            if (p.isEntangled) {
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x > canvas.width / 2 ? canvas.width + 50 : -50, p.y);
+                ctx.strokeStyle = "rgba(0, 242, 234, 0.5)";
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 15]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        });
+        particles.forEach(p => {
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
             if (p.measuredValue === 0) ctx.fillStyle = '#3b82f6';
@@ -125,7 +139,6 @@
         });
     }
 
-    // --- Simulator Action Functions ---
     function addParticle(name) {
         if (particleNameMap.has(name)) return;
         const newParticle = new QuantumParticle(name);
@@ -135,11 +148,8 @@
         draw();
     }
 
-    function getParticle(name) {
-        return particleNameMap.get(name);
-    }
+    function getParticle(name) { return particleNameMap.get(name); }
     
-    // --- Client-Server Communication Logic ---
     const socket = io("https://qios-2.onrender.com");
 
     function log(message, type = 'info') {
@@ -152,7 +162,6 @@
         nodeLog.scrollTop = nodeLog.scrollHeight;
     }
 
-    // --- Socket.io Event Handlers ---
     socket.on('connect', () => {
         connectionStatus.textContent = `Connected to Back Office. Node ID: ${socket.id.substring(0,6)}...`;
         connectionStatus.className = 'text-green-500';
@@ -168,52 +177,41 @@
         log('Connection lost.', 'error');
     });
     
-    // ** THE NEW, ACTIVE COMMAND PROCESSOR **
     socket.on('execute_command', (data) => {
-        log(`Received command from orchestrator: ${data.command} on ${data.target}`, 'warn');
+        log(`Received command: ${data.command} on ${data.target}`, 'warn');
         let particle = getParticle(data.target);
         
         switch (data.command) {
-            case 'create_particle':
-                addParticle(data.target);
-                break;
-            case 'apply_hadamard':
+            case 'create_particle': addParticle(data.target); break;
+            case 'apply_hadamard': if (particle) particle.applyHadamard(); break;
+            case 'entangle':
                 if (particle) {
-                    particle.applyHadamard();
-                } else {
-                    log(`Error: Particle "${data.target}" not found on this node.`, 'error');
+                    particle.isEntangled = true;
+                    log(`Particle ${particle.name} is now entangled with a remote particle.`, 'info');
                 }
                 break;
-            // CNOT and other commands will be added here
         }
-        draw(); // Redraw the canvas to show the new state
+        draw();
     });
     
-    socket.on('log_message', (data) => {
-        log(data.message, data.type);
-    });
+    socket.on('log_message', (data) => { log(data.message, data.type); });
 
-    // --- User Actions ---
     runProgramBtn.addEventListener('click', () => {
         const programCode = programEditor.value;
-        if (!programCode) {
-            log('Program editor is empty.', 'error');
-            return;
-        }
-        // Clear local state before new run
-        particles = [];
-        particleNameMap.clear();
-        draw();
+        if (!programCode) { log('Program editor is empty.', 'error'); return; }
+        particles = []; particleNameMap.clear(); draw();
         log('Sending program to Back Office for orchestration...', 'info');
         socket.emit('run_program', { code: programCode });
     });
     
-    const exampleCode = `// This program demonstrates orchestration.\n// The Back Office will parse this and send commands back to the nodes.\n\nparticle alice_q1; // Will be created on this node\nparticle bob_q1;   // Will be created on another connected node\n\nhadamard alice_q1;\ncnot alice_q1, bob_q1; // This requires cross-node communication!\n\nmeasure alice_q1 -> c1;\nmeasure bob_q1 -> c2;`;
+    const exampleCode = `particle alice_q1;\nparticle bob_q1;\nhadamard alice_q1;\ncnot alice_q1, bob_q1;`;
     loadExampleBtn.addEventListener('click', () => { programEditor.value = exampleCode; log('Example cross-node entanglement program loaded.', 'info'); });
+    
+    const exampleCodeAI = `particle attacker_q1;\nmeasure attacker_q1;\nmeasure attacker_q1;\nmeasure attacker_q1;\nmeasure attacker_q1;\nmeasure attacker_q1;\nmeasure attacker_q1;`;
+    loadAiTestBtn.addEventListener('click', () => { programEditor.value = exampleCodeAI; log('AI alert test program loaded.', 'info'); });
     
     window.onresize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; draw(); };
     window.onload = () => { window.onresize(); };
-
 </script>
 </body>
 </html>
