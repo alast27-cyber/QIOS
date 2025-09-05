@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHIPS Protocol Admin Panel</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- The Socket.IO client library is essential -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         :root {
@@ -59,14 +58,6 @@
         const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 50;
         let sanitizationRate = 95;
 
-        // --- Helper Functions ---
-        const updateCircularProgress = (percent) => {
-            const offset = CIRCLE_CIRCUMFERENCE - (percent / 100) * CIRCLE_CIRCUMFERENCE;
-            elems.sanitization.fg.style.strokeDasharray = CIRCLE_CIRCUMFERENCE;
-            elems.sanitization.fg.style.strokeDashoffset = offset;
-            elems.sanitization.text.textContent = `${Math.round(percent)}%`;
-        };
-
         // This function now adds LIVE messages from the server to the UI
         const addLogEntry = (log) => {
             const { type, message } = log;
@@ -75,7 +66,6 @@
             
             const checkSVG = `<svg viewBox="0 0 16 16"><path fill="none" d="M3.5 8.5l3 3l6-6" stroke="currentColor" stroke-width="2.5"/></svg>`;
 
-            // Only show checkmark for 'success' type messages
             li.innerHTML = `<div class="checkbox">${type === 'success' ? checkSVG : ''}</div><span>${message}</span>`;
             elems.simLogList.prepend(li);
             if (elems.simLogList.children.length > 10) {
@@ -83,43 +73,39 @@
             }
         };
 
-        // --- NEW: Socket.IO Client Logic ---
-        const adminSocket = io("https://qios-2.onrender.com"); // Your live server URL
+        // --- Socket.IO Client Logic ---
+        const adminSocket = io("https://qios-2.onrender.com");
 
         adminSocket.on('connect', () => {
-            console.log('Admin UI connected to Back Office');
-            elems.simLogList.innerHTML = ''; // Clear any old logs
+            elems.simLogList.innerHTML = '';
             addLogEntry({ type: 'info', message: 'Connecting to Back Office...' });
             adminSocket.emit('register_admin');
         });
 
-        // Listen for live stat updates from the server
         adminSocket.on('system_update', (data) => {
             const { stats } = data;
             elems.trace.val.textContent = Math.round(stats.traceability);
             elems.trace.prog.style.width = `${(stats.traceability / 120) * 100}%`;
             elems.contra.val.textContent = Math.round(stats.contradiction);
             elems.contra.prog.style.width = `${(stats.contradiction / 620) * 100}%`;
-
-            // Make the sanitization rate fluctuate slightly around the server value
-            sanitizationRate += Math.random() * 0.5 - 0.25;
+            
+            sanitizationRate = (sanitizationRate + 95 + (Math.random() - 0.5)) / 2; // Smooth the value with slight fluctuation
             sanitizationRate = Math.max(90, Math.min(100, sanitizationRate));
             updateCircularProgress(sanitizationRate);
         });
 
-        // Listen for log messages (like node connections/disconnections)
-        adminSocket.on('log_message', (log) => {
-            addLogEntry(log);
-        });
+        adminSocket.on('log_message', (log) => { addLogEntry(log); });
         
-        adminSocket.on('disconnect', () => {
-             addLogEntry({ type: 'warn', message: 'Connection to Back Office lost. Reconnecting...' });
-        });
+        adminSocket.on('disconnect', () => { addLogEntry({ type: 'warn', message: 'Connection to Back Office lost. Reconnecting...' }); });
 
-        // --- Initialization ---
+        const updateCircularProgress = (percent) => {
+            const offset = CIRCLE_CIRCUMFERENCE - (percent / 100) * CIRCLE_CIRCUMFERENCE;
+            elems.sanitization.fg.style.strokeDasharray = CIRCLE_CIRCUMFERENCE;
+            elems.sanitization.fg.style.strokeDashoffset = offset;
+            elems.sanitization.text.textContent = `${Math.round(percent)}%`;
+        };
         updateCircularProgress(sanitizationRate);
     });
 </script>
-
 </body>
 </html>
