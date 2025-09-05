@@ -6,31 +6,68 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: "*", // Allow all connections for simplicity
-        methods: ["GET", "POST"]
-    }
+    cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
 const PORT = process.env.PORT || 3000;
 
-// Serve the static HTML files from the 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Back Office State ---
 let connectedNodes = new Map();
 let adminSockets = new Set();
-let systemStats = {
-    traceability: 101,
-    contradiction: 599,
-    phase: 1
-};
+let systemStats = { traceability: 101, contradiction: 599, phase: 1 };
 
-// --- Main Server Logic ---
+// --- ADVANCED PARSER ---
+async function parseAndOrchestrate(programCode, requestingNodeId) {
+    const lines = programCode.split('\n').map(line => line.trim().split('//')[0]).filter(line => line);
+    const nodeList = Array.from(connectedNodes.keys());
+    let particleLocations = new Map(); // Track which node owns which particle
+
+    io.to('admins').emit('log_message', {type: 'info', message: `Orchestration started by ${requestingNodeId.substring(0,6)}...`});
+
+    for (const line of lines) {
+        const parts = line.split(/\s+/);
+        const command = parts[0];
+
+        if (command === 'particle') {
+            const particleName = parts[1].replace(';', '');
+            // Simple round-robin assignment for particles to nodes
+            const assignedNodeId = nodeList[particleLocations.size % nodeList.length];
+            particleLocations.set(particleName, assignedNodeId);
+            io.to(assignedNodeId).emit('execute_command', { command: 'create_particle', target: particleName });
+            await new Promise(r => setTimeout(r, 200)); // Network delay simulation
+        }
+        else if (command === 'hadamard') {
+            const particleName = parts[1].replace(';', '');
+            const nodeId = particleLocations.get(particleName);
+            if (nodeId) {
+                io.to(nodeId).emit('execute_command', { command: 'apply_hadamard', target: particleName });
+                await new Promise(r => setTimeout(r, 200));
+            }
+        }
+        else if (command === 'cnot') {
+            const controlName = parts[1].replace(',', '');
+            const targetName = parts[2].replace(';', '');
+            const controlNodeId = particleLocations.get(controlName);
+            const targetNodeId = particleLocations.get(targetName);
+
+            if (controlNodeId && targetNodeId) {
+                io.to('admins').emit('log_message', {type: 'info', message: `Orchestrating CNOT: ${controlName} -> ${targetName}`});
+                // In a real system, nodes would communicate directly. Here, we simulate it.
+                // For this simulation, we'll just log that it happened.
+                io.to(controlNodeId).emit('log_message', { type: 'warn', message: `CNOT control initiated on ${controlName}.` });
+                io.to(targetNodeId).emit('log_message', { type: 'warn', message: `CNOT target received on ${targetName}.` });
+                await new Promise(r => setTimeout(r, 500));
+            }
+        }
+    }
+    io.to('admins').emit('log_message', {type: 'success', message: `Orchestration complete.`});
+}
+
+
 io.on('connection', (socket) => {
-    console.log(`A user connected: ${socket.id}`);
-
-    // --- Admin Registration ---
+    // console.log(`A user connected: ${socket.id}`);
+    
     socket.on('register_admin', () => {
         console.log(`Admin UI registered: ${socket.id}`);
         adminSockets.add(socket.id);
@@ -39,7 +76,6 @@ io.on('connection', (socket) => {
         socket.emit('log_message', { type: 'info', message: `${connectedNodes.size} nodes currently online.` });
     });
 
-    // --- Node Registration ---
     socket.on('register_node', () => {
         console.log(`Quantum Node registered: ${socket.id}`);
         connectedNodes.set(socket.id, { id: socket.id, particles: [] });
@@ -48,48 +84,20 @@ io.on('connection', (socket) => {
         io.to('admins').emit('log_message', { type: 'success', message: `Node Connected: ${socket.id.substring(0, 6)}... Total nodes: ${connectedNodes.size}` });
     });
 
-    // --- Program Execution Logic ---
     socket.on('run_program', (data) => {
         console.log(`Received program from node ${socket.id}`);
-        const nodeList = Array.from(connectedNodes.keys());
-
-        if (nodeList.length < 2) {
-            const errorMsg = 'Error: At least 2 nodes must be connected to run this protocol.';
-            console.log(errorMsg);
-            io.to(socket.id).emit('log_message', { type: 'error', message: errorMsg });
+        if (connectedNodes.size < 2) {
+            io.to(socket.id).emit('log_message', { type: 'error', message: 'Error: At least 2 nodes must be connected.' });
             return;
         }
-
-        const aliceNodeId = socket.id;
-        const bobNodeId = nodeList.find(id => id !== aliceNodeId);
-
-        io.to('admins').emit('log_message', {type: 'info', message: `Orchestrating entanglement between ${aliceNodeId.substring(0,6)}... and ${bobNodeId.substring(0,6)}...`});
-        io.to(aliceNodeId).emit('log_message', { type: 'warn', message: 'Orchestrator: Creating particle alice_q1 on your node.' });
-        io.to(bobNodeId).emit('log_message', { type: 'warn', message: 'Orchestrator: Creating particle bob_q1 on your node.' });
-        
-        setTimeout(() => {
-             io.to(aliceNodeId).emit('execute_command', { command: 'apply_hadamard', target: 'alice_q1'});
-             io.to(aliceNodeId).emit('log_message', { type: 'warn', message: 'Orchestrator: Applying Hadamard to alice_q1.' });
-        }, 1000);
-        
-         setTimeout(() => {
-            io.to(aliceNodeId).emit('log_message', { type: 'warn', message: 'Orchestrator: Initiating CNOT between your alice_q1 and bob_q1...' });
-            io.to(bobNodeId).emit('log_message', { type: 'warn', message: 'Orchestrator: Receiving CNOT from another node...' });
-            io.to('admins').emit('log_message', {type: 'success', message: `Entanglement protocol successful.`});
-        }, 2000);
+        // Use the new advanced parser
+        parseAndOrchestrate(data.code, socket.id);
     });
     
-    // --- NEW: HEARTBEAT PONG LISTENER ---
-    // Listens for the client's heartbeat response.
-    socket.on('pong', () => {
-        // This confirms the client is still alive. We don't need to do anything here,
-        // but it's useful for debugging or tracking latency in the future.
-        // console.log(`Received pong from ${socket.id}`);
-    });
+    socket.on('pong', () => {});
 
-    // --- Disconnection Logic ---
     socket.on('disconnect', () => {
-        console.log(`User disconnected: ${socket.id}`);
+        // console.log(`User disconnected: ${socket.id}`);
         const wasNode = connectedNodes.has(socket.id);
         if (wasNode) {
             connectedNodes.delete(socket.id);
@@ -101,7 +109,6 @@ io.on('connection', (socket) => {
     });
 });
     
-// --- Continuous Simulation Loop for Admin Panel ---
 setInterval(() => {
     systemStats.traceability += Math.random() * 2 - 1;
     systemStats.contradiction += Math.random() * 4 - 2;
@@ -109,11 +116,7 @@ setInterval(() => {
     io.to('admins').emit('system_update', updatePayload);
 }, 2500);
 
-// --- NEW: HEARTBEAT PING SENDER ---
-// This keeps all client connections alive.
-setInterval(() => {
-    io.emit('ping');
-}, 20000); // Every 20 seconds
+setInterval(() => { io.emit('ping'); }, 20000);
 
 server.listen(PORT, () => {
     console.log(`QIOS Back Office is running on http://localhost:${PORT}`);
