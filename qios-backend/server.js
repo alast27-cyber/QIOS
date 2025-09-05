@@ -5,7 +5,11 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
+// --- STABILITY UPGRADE ---
+const io = new Server(server, { 
+    cors: { origin: "*", methods: ["GET", "POST"] },
+    transports: ['websocket'] // Force WebSocket transport only
+});
 
 const PORT = process.env.PORT || 3000;
 
@@ -102,9 +106,8 @@ async function parseAndOrchestrate(programCode, requestingNodeId) {
                  const bitName = parts[3].replace(';', '');
                  if (ownerNodeId) {
                      io.to(ownerNodeId).emit('execute_command', { command: 'measure', target: particleName, bit: bitName });
-                     // Wait for the result from the node
                      await new Promise(resolve => {
-                         const timeout = setTimeout(() => resolve(), 2000); // 2-second timeout
+                         const timeout = setTimeout(() => resolve(), 2000);
                          socket.once(`measure_result_${bitName}`, (data) => {
                              classicalBits.set(bitName, data.result);
                              io.to('admins').emit('log_message', { type: 'info', message: `Classical bit ${bitName} = ${data.result}` });
@@ -121,29 +124,6 @@ async function parseAndOrchestrate(programCode, requestingNodeId) {
 }
 
 // --- Connection and Server Logic ---
-io.on('connection', (socket) => {
-    socket.on('register_admin', () => { /* ... same ... */ });
-    socket.on('register_node', () => { /* ... same ... */ });
-    socket.on('run_program', (data) => { parseAndOrchestrate(data.code, socket.id); });
-    socket.on('pong', () => {});
-    socket.on('disconnect', () => { /* ... same ... */ });
-});
-    
-setInterval(() => {
-    systemStats.traceability += Math.random() * 2 - 1;
-    systemStats.contradiction += Math.random() * 4 - 2;
-    const updatePayload = { 
-        stats: systemStats, 
-        nodeCount: connectedNodes.size,
-        quarantined: Array.from(guardianAI.quarantinedNodes) // Send quarantine list
-    };
-    io.to('admins').emit('system_update', updatePayload);
-}, 2500);
-
-setInterval(() => { io.emit('ping'); }, 20000);
-server.listen(PORT, () => { console.log(`QIOS Back Office is running on http://localhost:${PORT}`); });
-
-// --- Full io.on('connection') Block ---
 io.on('connection', (socket) => {
     socket.on('register_admin', () => {
         adminSockets.add(socket.id); socket.join('admins');
@@ -165,10 +145,24 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         const wasNode = connectedNodes.has(socket.id);
         if (wasNode) {
-            guardianAI.quarantinedNodes.delete(socket.id); // Remove from quarantine on disconnect
+            guardianAI.quarantinedNodes.delete(socket.id);
             connectedNodes.delete(socket.id);
             io.to('admins').emit('log_message', { type: 'warn', message: `Node Disconnected: ${socket.id.substring(0, 6)}... Total: ${connectedNodes.size}` });
         }
         adminSockets.delete(socket.id);
     });
 });
+    
+setInterval(() => {
+    systemStats.traceability += Math.random() * 2 - 1;
+    systemStats.contradiction += Math.random() * 4 - 2;
+    const updatePayload = { 
+        stats: systemStats, 
+        nodeCount: connectedNodes.size,
+        quarantined: Array.from(guardianAI.quarantinedNodes)
+    };
+    io.to('admins').emit('system_update', updatePayload);
+}, 2500);
+
+setInterval(() => { io.emit('ping'); }, 20000);
+server.listen(PORT, () => { console.log(`QIOS Back Office is running on http://localhost:${PORT}`); });
