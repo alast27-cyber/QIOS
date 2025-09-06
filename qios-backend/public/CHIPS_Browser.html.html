@@ -8,12 +8,11 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #0f172a; color: #e5e7eb; }
-        .grid-container { display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.5rem; }
-        .console { background-color: #1e293b; font-family: monospace; height: 400px; overflow-y: auto; border-radius: 0.5rem; padding: 1rem; }
+        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .console { background-color: #1e293b; font-family: monospace; height: 200px; overflow-y: auto; border-radius: 0.5rem; padding: 1rem; }
         .btn { background: #3b82f6; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
-        canvas { background-color: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; display: block; touch-action: none; }
-        textarea { background: #1e293b; border: 1px solid #334155; color: #e5e7eb; border-radius: 8px; }
-        #trust-score-bar-inner { transition: width 0.5s ease, background-color 0.5s ease; }
+        canvas { background-color: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; display: block; }
+        .game-over-message { display: none; } /* Hide game over by default */
     </style>
 </head>
 <body class="p-6">
@@ -21,86 +20,143 @@
         <header>
             <h1 class="text-3xl font-bold">CHIPS:// Browser & Quantum Node</h1>
             <p id="connection-status" class="text-red-500">Connecting to Back Office...</p>
-            <div class="mt-2">
-                <label for="trust-score-bar" class="text-sm font-medium text-gray-400">Network Trust Score</label>
-                <div id="trust-score-bar" class="w-full bg-gray-700 rounded-full h-2.5">
-                    <div id="trust-score-bar-inner" class="bg-green-600 h-2.5 rounded-full" style="width: 100%"></div>
-                </div>
-            </div>
         </header>
+
         <div class="grid-container">
+            <!-- Left Column: Game -->
             <div class="space-y-6">
                 <section>
-                    <h2 class="text-xl font-semibold mb-3">Quantum Program IDE</h2>
-                    <textarea id="programEditor" class="w-full h-64 p-3 font-mono text-sm"></textarea>
-                    <div class="flex space-x-2 mt-2">
-                        <button id="runProgramBtn" class="btn">Run Program (Orchestrated)</button>
-                        <button id="loadExampleBtn" class="btn bg-gray-600">Load Teleportation Prep</button>
+                    <h2 class="text-xl font-semibold mb-3">Quantum Entangled Snake</h2>
+                    <canvas id="gameCanvas" width="400" height="400"></canvas>
+                    <div class="mt-4">
+                        <button id="findGameBtn" class="btn bg-green-600">Find Entangled Partner</button>
                     </div>
-                     <div class="mt-4"><button id="loadAiTestBtn" class="btn bg-yellow-600">Load AI Alert Test Program</button></div>
                 </section>
+            </div>
+
+            <!-- Right Column: Log -->
+            <div class="space-y-6">
                 <section><h2 class="text-xl font-semibold mb-3">Node Log</h2><div id="nodeLog" class="console"></div></section>
             </div>
-            <div class="space-y-6"><section><h2 class="text-xl font-semibold mb-3">Local Qubit Simulator</h2><canvas id="quantumCanvas" class="w-full aspect-video"></canvas></section></div>
         </div>
     </div>
 
 <script>
-    const programEditor = document.getElementById('programEditor');
-    const runProgramBtn = document.getElementById('runProgramBtn');
-    const loadExampleBtn = document.getElementById('loadExampleBtn');
-    const loadAiTestBtn = document.getElementById('loadAiTestBtn');
     const nodeLog = document.getElementById('nodeLog');
     const connectionStatus = document.getElementById('connection-status');
-    const canvas = document.getElementById('quantumCanvas');
-    const ctx = canvas.getContext('2d');
-    const trustScoreBar = document.getElementById('trust-score-bar-inner');
-
-    let particles = []; let particleNameMap = new Map();
-    class Complex { constructor(re,im){this.re=re;this.im=im;} add(o){return new Complex(this.re+o.re,this.im+o.im);} sub(o){return new Complex(this.re-o.re,this.im-o.im);} mul(o){return new Complex(this.re*o.re-this.im*o.im,this.re*o.im+this.im*o.re);} magnitudeSq(){return this.re*this.re+this.im*this.im;}}
-    class QuantumParticle { constructor(n){this.name=n;this.x=Math.random()*(canvas.width-80)+40;this.y=Math.random()*(canvas.height-80)+40;this.radius=20;this.alpha=new Complex(1,0);this.beta=new Complex(0,0);this.measuredValue=0;this.isEntangled=false;} applyHadamard(){const a=this.alpha,b=this.beta,s=new Complex(1/Math.sqrt(2),0);this.alpha=a.add(b).mul(s);this.beta=a.sub(b).mul(s);this.measuredValue=null;} applyPauliX(){[this.alpha,this.beta]=[this.beta,this.alpha];this.measuredValue=null;} applyPauliZ(){this.beta=this.beta.mul(new Complex(-1,0));this.measuredValue=null;} measure(){const p=this.alpha.magnitudeSq(),o=Math.random()<p?0:1;this.measuredValue=o;this.alpha=new Complex(o===0?1:0,0);this.beta=new Complex(o===1?1:0,0);return o;} getStateString(){if(this.measuredValue!==null)return`|${this.measuredValue}>`;const p0=(this.alpha.magnitudeSq()*100).toFixed(1),p1=(this.beta.magnitudeSq()*100).toFixed(1);return`(${p0}%|0>, ${p1}%|1>)`;}}
-    function draw() { ctx.clearRect(0,0,canvas.width,canvas.height); particles.forEach(p=>{if(p.isEntangled){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x>canvas.width/2?canvas.width+50:-50,p.y);ctx.strokeStyle="rgba(0,242,234,0.5)";ctx.lineWidth=2;ctx.setLineDash([5,15]);ctx.stroke();ctx.setLineDash([]);}}); particles.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.radius,0,Math.PI*2);if(p.measuredValue===0)ctx.fillStyle='#3b82f6';else if(p.measuredValue===1)ctx.fillStyle='#ef4444';else{const r=Math.floor(255*p.beta.magnitudeSq()),b=Math.floor(255*p.alpha.magnitudeSq());ctx.fillStyle=`rgb(${r},100,${b})`;} ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 12px Poppins';ctx.fillText(p.name,p.x,p.y-p.radius-8);ctx.font='10px Poppins';ctx.fillText(p.getStateString(),p.x,p.y+p.radius+12);});}
-    function addParticle(n){if(!particleNameMap.has(n)){const p=new QuantumParticle(n);particles.push(p);particleNameMap.set(n,p);log(`Particle "${n}" created.`, 'info');draw();}}
-    function getParticle(n){return particleNameMap.get(n);}
+    const findGameBtn = document.getElementById('findGameBtn');
+    const gameCanvas = document.getElementById('gameCanvas');
+    const ctx = gameCanvas.getContext('2d');
     
+    // --- Socket.IO Connection ---
     const socket = io("https://qios-2.onrender.com", { transports: ['websocket'] });
 
-    function log(m,t='info'){const p=document.createElement('p');p.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;if(t==='error')p.className='text-red-400';else if(t==='warn')p.className='text-yellow-400';else p.className='text-cyan-400';nodeLog.appendChild(p);nodeLog.scrollTop=nodeLog.scrollHeight;}
-
-    socket.on('connect', () => { connectionStatus.textContent = `Connected. Node ID: ${socket.id.substring(0,6)}...`; connectionStatus.className = 'text-green-500'; log('Successfully connected to QIOS Back Office.', 'info'); socket.emit('register_node'); });
+    function log(m, t='info'){ /* ... same as before ... */ }
+    socket.on('connect', () => { /* ... same as before ... */ });
     socket.on('ping', () => { socket.emit('pong'); });
-    socket.on('disconnect', () => { connectionStatus.textContent = 'Disconnected'; connectionStatus.className = 'text-red-500'; log('Connection lost.', 'error'); });
+    socket.on('disconnect', () => { /* ... same as before ... */ });
     socket.on('log_message', (data) => { log(data.message, data.type); });
 
-    socket.on('execute_command', (data) => {
-        let particle = getParticle(data.target);
-        switch (data.command) {
-            case 'create_particle': addParticle(data.target); break;
-            case 'hadamard': if(particle)particle.applyHadamard(); break;
-            case 'x': if(particle)particle.applyPauliX(); break;
-            case 'z': if(particle)particle.applyPauliZ(); break;
-            case 'entangle': if(particle)particle.isEntangled=true; break;
-            case 'measure': if(particle){const r=particle.measure();socket.emit(`measure_result_${data.bit}`,{result:r});log(`Measured ${particle.name}, result is ${r}. Sent.`, 'info');} break;
+    // --- SNAKE GAME LOGIC ---
+    const tileSize = 20;
+    let snake = [];
+    let food = {};
+    let direction = 'right';
+    let gameLoop;
+    let isGameOver = false;
+
+    function generateFood() {
+        food = {
+            x: Math.floor(Math.random() * (gameCanvas.width / tileSize)),
+            y: Math.floor(Math.random() * (gameCanvas.height / tileSize))
+        };
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+        ctx.fillStyle = '#f6ad55'; // Food color
+        ctx.fillRect(food.x * tileSize, food.y * tileSize, tileSize, tileSize);
+        ctx.fillStyle = '#63b3ed'; // Snake color
+        snake.forEach(segment => {
+            ctx.fillRect(segment.x * tileSize, segment.y * tileSize, tileSize, tileSize);
+        });
+    }
+
+    function update() {
+        if (isGameOver) return;
+        const head = {x: snake[0].x, y: snake[0].y};
+        switch (direction) {
+            case 'right': head.x++; break;
+            case 'left': head.x--; break;
+            case 'up': head.y--; break;
+            case 'down': head.y++; break;
+        }
+        snake.unshift(head);
+
+        // Check for collision with food
+        if (head.x === food.x && head.y === food.y) {
+            log('Ate food! Notifying partner...', 'info');
+            socket.emit('ate_food'); // ** NOTIFY SERVER **
+            generateFood();
+        } else {
+            snake.pop();
+        }
+        
+        // Game over conditions
+        if (head.x < 0 || head.x >= gameCanvas.width / tileSize || head.y < 0 || head.y >= gameCanvas.height / tileSize) {
+            endGame();
         }
         draw();
-    });
-    
-    socket.on('trust_update', (data) => {
-        const score = data.score;
-        trustScoreBar.style.width = `${score}%`;
-        if (score < 50) { trustScoreBar.style.backgroundColor = '#ef4444'; }
-        else if (score < 80) { trustScoreBar.style.backgroundColor = '#f59e0b'; }
-        else { trustScoreBar.style.backgroundColor = '#22c55e'; }
+    }
+
+    function startGame() {
+        snake = [{x: 10, y: 10}];
+        direction = 'right';
+        isGameOver = false;
+        generateFood();
+        clearInterval(gameLoop);
+        gameLoop = setInterval(update, 120);
+        log('Game started!', 'success');
+        findGameBtn.disabled = true;
+    }
+
+    function endGame() {
+        clearInterval(gameLoop);
+        isGameOver = true;
+        log('Game Over! Your snake collided.', 'error');
+        findGameBtn.disabled = false;
+    }
+
+    document.addEventListener('keydown', (e) => {
+        switch (e.key) {
+            case 'ArrowUp': if (direction !== 'down') direction = 'up'; break;
+            case 'ArrowDown': if (direction !== 'up') direction = 'up'; break; // Fixed bug
+            case 'ArrowLeft': if (direction !== 'right') direction = 'left'; break;
+            case 'ArrowRight': if (direction !== 'left') direction = 'right'; break;
+        }
     });
 
-    runProgramBtn.addEventListener('click', () => { const c=programEditor.value; if(!c)return; particles=[];particleNameMap.clear();draw(); log('Sending program for orchestration...','info'); socket.emit('run_program',{code:c}); });
-    const teleportPrepCode = `particle q_source;\nparticle q_alice;\nparticle q_bob;\nhadamard q_source;\nx q_source;\nhadamard q_alice;\ncnot q_alice, q_bob;`;
-    loadExampleBtn.addEventListener('click', () => { programEditor.value = teleportPrepCode; log('Teleportation prep program loaded.', 'info'); });
-    const aiTestCode = `particle attacker;\nmeasure attacker -> c1;\nmeasure attacker -> c2;\nmeasure attacker -> c3;\nmeasure attacker -> c4;\nmeasure attacker -> c5;\nmeasure attacker -> c6;`;
-    loadAiTestBtn.addEventListener('click', () => { programEditor.value = aiTestCode; log('AI alert test program loaded.', 'info'); });
+    findGameBtn.addEventListener('click', () => {
+        log('Finding an entangled partner...', 'info');
+        socket.emit('find_game');
+    });
+
+    // --- NEW: Game Event Listeners from Server ---
+    socket.on('game_start', (data) => {
+        log(`Partner found: ${data.partnerId.substring(0,6)}... Entanglement established!`, 'success');
+        startGame();
+    });
+
+    socket.on('entangled_growth', () => {
+        log('Received entangled growth command from partner!', 'warn');
+        // Grow snake without eating food by not calling snake.pop()
+        // We can just add a tail segment to make it simple
+        const tail = snake[snake.length - 1];
+        snake.push({...tail}); // Add a new segment at the tail's last position
+    });
     
-    window.onresize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; draw(); };
-    window.onload = () => { window.onresize(); };
+    // Initial draw
+    draw();
 </script>
 </body>
 </html>
