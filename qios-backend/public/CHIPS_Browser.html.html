@@ -21,7 +21,6 @@
         <header>
             <h1 class="text-3xl font-bold">CHIPS:// Browser & Quantum Node</h1>
             <p id="connection-status" class="text-red-500">Connecting to Back Office...</p>
-            <!-- NEW: Trust Score Display -->
             <div class="mt-2">
                 <label for="trust-score-bar" class="text-sm font-medium text-gray-400">Network Trust Score</label>
                 <div id="trust-score-bar" class="w-full bg-gray-700 rounded-full h-2.5">
@@ -86,13 +85,12 @@
         draw();
     });
     
-    // --- NEW: Trust Score Listener ---
     socket.on('trust_update', (data) => {
         const score = data.score;
         trustScoreBar.style.width = `${score}%`;
-        if (score < 50) { trustScoreBar.style.backgroundColor = '#ef4444'; } // Red
-        else if (score < 80) { trustScoreBar.style.backgroundColor = '#f59e0b'; } // Yellow
-        else { trustScoreBar.style.backgroundColor = '#22c55e'; } // Green
+        if (score < 50) { trustScoreBar.style.backgroundColor = '#ef4444'; }
+        else if (score < 80) { trustScoreBar.style.backgroundColor = '#f59e0b'; }
+        else { trustScoreBar.style.backgroundColor = '#22c55e'; }
     });
 
     runProgramBtn.addEventListener('click', () => { const c=programEditor.value; if(!c)return; particles=[];particleNameMap.clear();draw(); log('Sending program for orchestration...','info'); socket.emit('run_program',{code:c}); });

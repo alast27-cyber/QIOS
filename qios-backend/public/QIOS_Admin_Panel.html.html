@@ -15,19 +15,20 @@
         }
         *, *::before, *::after { box-sizing: border-box; }
         body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-primary); padding: 2rem; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
-        .admin-panel { width: 1400px; max-width: 95%; background: none; padding: 0; display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: auto; gap: 1.5rem; grid-template-areas: "header header header header header header header header header header header header" "stats stats stats stats stats stats stats stats stats stats stats stats" "nodes nodes nodes nodes nodes nodes log log log log log log"; }
+        .admin-panel { width: 1400px; max-width: 95%; background: none; padding: 0; display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: auto; gap: 1.5rem; grid-template-areas: "header header header header header header header header header header header header" "stats stats stats stats stats stats stats stats stats stats stats stats" "nodes nodes nodes nodes roadmap roadmap roadmap roadmap log log log log" "chat chat chat chat chat chat chat chat log log log log"; }
         .panel { background: var(--panel-bg-color); border: 1px solid rgba(56, 189, 248, 0.1); border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
         .panel-title { font-size: 1rem; font-weight: 500; color: var(--text-secondary); margin: 0 0 1.5rem 0; }
         #header { grid-area: header; } #stats-container { grid-area: stats; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
-        #node-trust-panel { grid-area: nodes; } #log { grid-area: log; }
+        #node-trust-panel { grid-area: nodes; } #roadmap-panel { grid-area: roadmap; } #log { grid-area: log; } #chat-panel { grid-area: chat; }
         .stat-card-value { font-size: 1.75rem; font-weight: 600; }
         #simulation-log-list, #node-trust-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; font-size: 0.9rem; }
         #simulation-log-list li, .node-trust-item { display: flex; align-items: center; margin-bottom: 0.75rem; }
-        #simulation-log-list li .icon, .node-trust-item .icon { width: 18px; height: 18px; margin-right: 0.75rem; display: flex; align-items: center; justify-content: center; }
-        #simulation-log-list li .icon svg, .node-trust-item .icon svg { width: 12px; height: 12px; }
+        .icon { width: 18px; height: 18px; margin-right: 0.75rem; display: flex; align-items: center; justify-content: center; } .icon svg { width: 12px; height: 12px; }
         #simulation-log-list li.success { color: var(--accent-green); } #simulation-log-list li.warn { color: var(--accent-warn); } #simulation-log-list li.info { color: var(--accent-blue); }
-        .trust-bar { flex-grow: 1; height: 8px; background-color: #374151; border-radius: 4px; margin: 0 1rem; }
-        .trust-bar-inner { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        .trust-bar { flex-grow: 1; height: 8px; background-color: #374151; border-radius: 4px; margin: 0 1rem; } .trust-bar-inner { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        #chat-log { flex-grow: 1; overflow-y: auto; margin-bottom: 1rem; } #chat-log p { margin: 0 0 0.5rem 0; } #chat-log .user { color: var(--accent-cyan); } #chat-log .ai { color: var(--text-primary); }
+        #chat-input { background: #0f172a; border: 1px solid var(--border-color); color: white; padding: 0.5rem; border-radius: 8px; width: 100%; }
+        .roadmap-item { border-left: 3px solid var(--text-secondary); padding-left: 1rem; margin-bottom: 1rem; } .roadmap-item.complete { border-color: var(--accent-green); } .roadmap-item.active { border-color: var(--accent-cyan); }
     </style>
 </head>
 <body>
@@ -39,56 +40,62 @@
             <div class="stat-card panel"><div class="panel-title">Contradiction Index</div><span id="stat-contra-value" class="stat-card-value">599</span></div>
         </div>
         <div id="node-trust-panel" class="panel"><h2 class="panel-title">Node Trust Dashboard</h2><ul id="node-trust-list"></ul></div>
+        <div id="roadmap-panel" class="panel"><h2 class="panel-title">Guardian AI Training Roadmap</h2><div id="roadmap-list"></div></div>
+        <div id="chat-panel" class="panel"><h2 class="panel-title">Chat with Guardian AI</h2><div id="chat-log"></div><input type="text" id="chat-input" placeholder="Type 'status' and press Enter..."></div>
         <div id="log" class="panel"><h2 class="panel-title">Live Network Log</h2><ul id="simulation-log-list"></ul></div>
     </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const elems = {
-            nodes: document.getElementById('stat-nodes-value'),
-            trace: document.getElementById('stat-trace-value'),
-            contra: document.getElementById('stat-contra-value'),
-            simLogList: document.getElementById('simulation-log-list'),
-            nodeTrustList: document.getElementById('node-trust-list')
+            nodes: document.getElementById('stat-nodes-value'), trace: document.getElementById('stat-trace-value'), contra: document.getElementById('stat-contra-value'),
+            simLogList: document.getElementById('simulation-log-list'), nodeTrustList: document.getElementById('node-trust-list'),
+            roadmapList: document.getElementById('roadmap-list'), chatLog: document.getElementById('chat-log'), chatInput: document.getElementById('chat-input')
         };
 
-        const addLogEntry = (log) => { const { type, message } = log; const li = document.createElement('li'); li.className = type; const iconMap = { success: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`, warn: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`, info: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>` }; li.innerHTML = `<div class="icon">${iconMap[type] || ''}</div><span>${message}</span>`; elems.simLogList.prepend(li); if (elems.simLogList.children.length > 20) elems.simLogList.lastChild.remove(); };
+        const addLogEntry = (log) => { /* ... same as before ... */ };
+        const updateTrustList = (scores) => { /* ... same as before ... */ };
+        
+        const updateRoadmap = (roadmap) => {
+            elems.roadmapList.innerHTML = '';
+            roadmap.forEach(phase => {
+                const div = document.createElement('div');
+                div.className = `roadmap-item ${phase.status}`;
+                div.innerHTML = `<h3 class="font-semibold">${phase.phase}: ${phase.name} <span class="text-xs uppercase font-normal text-gray-400">(${phase.status})</span></h3><p class="text-sm text-gray-400">${phase.description}</p>`;
+                elems.roadmapList.appendChild(div);
+            });
+        };
 
-        const updateTrustList = (scores) => {
-            elems.nodeTrustList.innerHTML = '';
-            if (Object.keys(scores).length === 0) {
-                 elems.nodeTrustList.innerHTML = '<div style="color: var(--text-secondary);">No nodes connected.</div>';
-                 return;
-            }
-            for (const nodeId in scores) {
-                const score = scores[nodeId];
-                const li = document.createElement('li');
-                li.className = 'node-trust-item';
-                let color = 'var(--accent-green)';
-                if (score < 50) color = 'var(--accent-red)';
-                else if (score < 80) color = 'var(--accent-warn)';
-                
-                li.innerHTML = `
-                    <span>Node ${nodeId.substring(0,6)}...</span>
-                    <div class="trust-bar"><div class="trust-bar-inner" style="width: ${score}%; background-color: ${color};"></div></div>
-                    <span style="color: ${color}; font-weight: 600;">${score.toFixed(1)}</span>
-                `;
-                elems.nodeTrustList.appendChild(li);
-            }
+        const addChatMessage = (msg) => {
+            const p = document.createElement('p');
+            p.innerHTML = `<strong class="${msg.sender === 'You' ? 'user' : 'ai'}">${msg.sender}:</strong> ${msg.text}`;
+            elems.chatLog.appendChild(p);
+            elems.chatLog.scrollTop = elems.chatLog.scrollHeight;
         };
 
         const adminSocket = io("https://qios-2.onrender.com", { transports: ['websocket'] });
-        adminSocket.on('connect', () => { elems.simLogList.innerHTML = ''; addLogEntry({ type: 'info', message: 'Connecting to Back Office...' }); adminSocket.emit('register_admin'); });
+        adminSocket.on('connect', () => { elems.simLogList.innerHTML = ''; addLogEntry({ type: 'info', message: 'Connecting...' }); adminSocket.emit('register_admin'); });
         
         adminSocket.on('system_update', (data) => {
-            elems.nodes.textContent = data.nodeCount;
-            elems.trace.textContent = Math.round(data.stats.traceability);
-            elems.contra.textContent = Math.round(data.stats.contradiction);
+            elems.nodes.textContent = data.nodeCount; elems.trace.textContent = Math.round(data.stats.traceability); elems.contra.textContent = Math.round(data.stats.contradiction);
             updateTrustList(data.trustScores || {});
+            updateRoadmap(data.roadmap || []);
         });
 
         adminSocket.on('log_message', (log) => { addLogEntry(log); });
-        adminSocket.on('disconnect', () => { addLogEntry({ type: 'warn', message: 'Connection to Back Office lost.' }); });
+        adminSocket.on('ai_chat_response', (msg) => { addChatMessage(msg); });
+        adminSocket.on('disconnect', () => { addLogEntry({ type: 'warn', message: 'Connection lost.' }); });
+        
+        elems.chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && elems.chatInput.value.trim() !== '') {
+                adminSocket.emit('ai_chat_message', { message: elems.chatInput.value });
+                elems.chatInput.value = '';
+            }
+        });
+        
+        // --- Re-paste unchanged helper functions for completeness ---
+        addLogEntry = (log) => { const { type, message } = log; const li = document.createElement('li'); li.className = type; const iconMap = { success: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`, warn: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`, info: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>` }; li.innerHTML = `<div class="icon">${iconMap[type] || ''}</div><span>${message}</span>`; elems.simLogList.prepend(li); if (elems.simLogList.children.length > 20) elems.simLogList.lastChild.remove(); };
+        updateTrustList = (scores) => { elems.nodeTrustList.innerHTML = ''; if (Object.keys(scores).length === 0) { elems.nodeTrustList.innerHTML = '<div style="color: var(--text-secondary);">No nodes connected.</div>'; return; } for (const nodeId in scores) { const score = scores[nodeId]; const li = document.createElement('li'); li.className = 'node-trust-item'; let color = 'var(--accent-green)'; if (score < 50) color = 'var(--accent-red)'; else if (score < 80) color = 'var(--accent-warn)'; li.innerHTML = `<span>Node ${nodeId.substring(0,6)}...</span><div class="trust-bar"><div class="trust-bar-inner" style="width: ${score}%; background-color: ${color};"></div></div><span style="color: ${color}; font-weight: 600;">${score.toFixed(1)}</span>`; elems.nodeTrustList.appendChild(li); }};
     });
 </script>
 </body>
