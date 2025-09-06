@@ -40,7 +40,7 @@ const guardianAI = {
 
     // --- NEW: LLM-Powered Chat Handler ---
     async processChatMessage(message, adminSocket) {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+        const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro-latest"});
         const trustedCount = Array.from(this.trustScores.values()).filter(s => s >= 80).length;
         const untrustedCount = Array.from(this.trustScores.values()).filter(s => s < 50).length;
         const activePhase = this.trainingRoadmap.find(p => p.status === 'active');
@@ -119,4 +119,5 @@ io.on('connection', (socket) => {
     });
 });
 async function parseAndOrchestrate(programCode, requestingNodeId) { if ((guardianAI.trustScores.get(requestingNodeId) || 100) < 50 && programCode.includes('cnot')) { io.to(requestingNodeId).emit('log_message', { type: 'error', message: `Action rejected. Trust Score too low for CNOT.` }); return; } const lines = programCode.split('\n').map(l=>l.trim().split('//')[0]).filter(l=>l); const nodeList = Array.from(connectedNodes.keys()); let particleLocations = new Map(); io.to('admins').emit('log_message', {type: 'info', message: `Orchestration started by ${requestingNodeId.substring(0,6)}...`}); for(const l of lines){ const p=l.split(/\s+/), c=p[0], n=p[1]?.replace(';','').replace(',',''); const o=particleLocations.get(n); if(o)guardianAI.logActivity(o,c); switch(c){ case 'particle': { const a=nodeList[particleLocations.size % nodeList.length]; particleLocations.set(n, a); io.to(a).emit('execute_command', { command: 'create_particle', target: n }); await new Promise(r=>setTimeout(r,200)); break; } case 'hadamard': case 'x': case 'z': { if(o) { io.to(o).emit('execute_command', { command: c, target: n }); await new Promise(r=>setTimeout(r,200)); } break; } case 'cnot': { const cN=p[1].replace(',',''), tN=p[2].replace(';',''), n1=particleLocations.get(cN), n2=particleLocations.get(tN); if(n1&&n2){ io.to('admins').emit('log_message', {type:'info', message:`Entangling: ${cN} <> ${tN}`}); io.to(n1).emit('execute_command', {command:'entangle', target:cN}); io.to(n2).emit('execute_command', {command:'entangle', target:tN}); await new Promise(r=>setTimeout(r,500));} break; } case 'measure': { const b=p[3]?.replace(';',''); if(o){ io.to(o).emit('execute_command', {command:'measure',target:n,bit:b});} await new Promise(r=>setTimeout(r,200)); break; }}} io.to('admins').emit('log_message', {type: 'success', message: `Orchestration complete.`});}
+
 setInterval(() => { /* ... same ... */ }, 5000);
