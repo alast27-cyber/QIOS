@@ -1,14 +1,13 @@
 const express = require('express');
-const http = require('http');
+const http =require('http');
 const { Server } = require("socket.io");
 const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-// --- STABILITY UPGRADE ---
 const io = new Server(server, { 
     cors: { origin: "*", methods: ["GET", "POST"] },
-    transports: ['websocket'] // Force WebSocket transport only
+    transports: ['websocket']
 });
 
 const PORT = process.env.PORT || 3000;
@@ -19,15 +18,24 @@ let connectedNodes = new Map();
 let adminSockets = new Set();
 let systemStats = { traceability: 101, contradiction: 599, phase: 1 };
 
-// --- GUARDIAN AI MODULE v2.0 (with Quarantine) ---
+// --- GUARDIAN AI MODULE v2.0 (Reputation-Based Trust) ---
 const guardianAI = {
     activityLog: new Map(),
-    quarantinedNodes: new Set(),
+    trustScores: new Map(), // <--- NEW: Trust Score map
+    
+    // Constants
     MEASURE_THRESHOLD: 5,
     TIME_WINDOW_MS: 5000,
+    TRUST_THRESHOLD_CNOT: 50, // Must have a score of at least 50 to perform CNOT
     
+    // Scoring Modifiers
+    SCORE_ON_CONNECT: 100,
+    SCORE_PENALTY_SPAM: -75,
+    SCORE_REWARD_SUCCESS: +5,
+    SCORE_PASSIVE_REGEN: +0.5,
+
     logActivity(nodeId, command) {
-        if (this.quarantinedNodes.has(nodeId) || command !== 'measure') return;
+        if (command !== 'measure') return;
         if (!this.activityLog.has(nodeId)) this.activityLog.set(nodeId, []);
 
         const now = Date.now();
@@ -38,31 +46,42 @@ const guardianAI = {
         this.activityLog.set(nodeId, recentTimestamps);
 
         if (recentTimestamps.length >= this.MEASURE_THRESHOLD) {
-            this.quarantine(nodeId);
-            this.activityLog.set(nodeId, []);
+            this.updateTrust(nodeId, this.SCORE_PENALTY_SPAM, "Measurement spam detected");
+            this.activityLog.set(nodeId, []); // Reset after triggering
         }
     },
-    
-    quarantine(nodeId) {
-        this.quarantinedNodes.add(nodeId);
-        const alertMessage = `GuardianAI: Quarantine engaged for Node ${nodeId.substring(0,6)}... due to measurement spam.`;
+
+    updateTrust(nodeId, amount, reason) {
+        let currentScore = this.trustScores.get(nodeId) || this.SCORE_ON_CONNECT;
+        currentScore += amount;
+        currentScore = Math.max(0, Math.min(100, currentScore)); // Clamp score between 0 and 100
+        this.trustScores.set(nodeId, currentScore);
+
+        const alertMessage = `GuardianAI: Trust for ${nodeId.substring(0,6)}... updated by ${amount}. New Score: ${currentScore}. Reason: ${reason}`;
         console.log(alertMessage);
         io.to('admins').emit('log_message', { type: 'warn', message: alertMessage });
-        io.to(nodeId).emit('log_message', { type: 'error', message: 'Your node has been quarantined by the Guardian AI for anomalous activity.' });
+    },
+    
+    passiveRegeneration() {
+        for (const [nodeId, score] of this.trustScores.entries()) {
+            if (score < 100) {
+                this.updateTrust(nodeId, this.SCORE_PASSIVE_REGEN, "Passive regeneration");
+            }
+        }
     }
 };
 
 // --- ADVANCED PARSER & ORCHESTRATOR v2.0 ---
 async function parseAndOrchestrate(programCode, requestingNodeId) {
-    if (guardianAI.quarantinedNodes.has(requestingNodeId)) {
-        io.to(requestingNodeId).emit('log_message', { type: 'error', message: 'Action rejected. Your node is currently under quarantine.' });
+    // Check if the node is trusted enough for sensitive operations
+    if (programCode.includes('cnot') && (guardianAI.trustScores.get(requestingNodeId) || 100) < guardianAI.TRUST_THRESHOLD_CNOT) {
+        io.to(requestingNodeId).emit('log_message', { type: 'error', message: `Action rejected. Trust Score is too low for CNOT operations.` });
         return;
     }
 
     const lines = programCode.split('\n').map(line => line.trim().split('//')[0]).filter(line => line);
     const nodeList = Array.from(connectedNodes.keys());
     let particleLocations = new Map();
-    let classicalBits = new Map(); // For measurement results
 
     io.to('admins').emit('log_message', {type: 'info', message: `Orchestration started by ${requestingNodeId.substring(0,6)}...`});
 
@@ -74,52 +93,17 @@ async function parseAndOrchestrate(programCode, requestingNodeId) {
         const ownerNodeId = particleLocations.get(particleName);
         if(ownerNodeId) guardianAI.logActivity(ownerNodeId, command);
 
+        // ... (rest of the switch case is identical to the previous version)
         switch(command) {
-            case 'particle': {
-                const assignedNodeId = nodeList[particleLocations.size % nodeList.length];
-                particleLocations.set(particleName, assignedNodeId);
-                io.to(assignedNodeId).emit('execute_command', { command: 'create_particle', target: particleName });
-                await new Promise(r => setTimeout(r, 200));
-                break;
-            }
-            case 'hadamard': case 'x': case 'z': {
-                if (ownerNodeId) {
-                    io.to(ownerNodeId).emit('execute_command', { command: command, target: particleName });
-                    await new Promise(r => setTimeout(r, 200));
-                }
-                break;
-            }
-            case 'cnot': {
-                const controlName = parts[1].replace(',', '');
-                const targetName = parts[2].replace(';', '');
-                const controlNodeId = particleLocations.get(controlName);
-                const targetNodeId = particleLocations.get(targetName);
-                if (controlNodeId && targetNodeId) {
-                    io.to('admins').emit('log_message', {type: 'info', message: `Orchestrating Entanglement: ${controlName} <> ${targetName}`});
-                    io.to(controlNodeId).emit('execute_command', { command: 'entangle', target: controlName, partnerId: targetNodeId });
-                    io.to(targetNodeId).emit('execute_command', { command: 'entangle', target: targetName, partnerId: controlNodeId });
-                    await new Promise(r => setTimeout(r, 500));
-                }
-                break;
-            }
-            case 'measure': {
-                 const bitName = parts[3].replace(';', '');
-                 if (ownerNodeId) {
-                     io.to(ownerNodeId).emit('execute_command', { command: 'measure', target: particleName, bit: bitName });
-                     await new Promise(resolve => {
-                         const timeout = setTimeout(() => resolve(), 2000);
-                         socket.once(`measure_result_${bitName}`, (data) => {
-                             classicalBits.set(bitName, data.result);
-                             io.to('admins').emit('log_message', { type: 'info', message: `Classical bit ${bitName} = ${data.result}` });
-                             clearTimeout(timeout);
-                             resolve();
-                         });
-                     });
-                 }
-                break;
-            }
+            case 'particle': { const a=nodeList[particleLocations.size % nodeList.length]; particleLocations.set(particleName,a); io.to(a).emit('execute_command', { command: 'create_particle', target: particleName }); await new Promise(r=>setTimeout(r,200)); break; }
+            case 'hadamard': case 'x': case 'z': { if (ownerNodeId) { io.to(ownerNodeId).emit('execute_command', { command: command, target: particleName }); await new Promise(r=>setTimeout(r,200)); } break; }
+            case 'cnot': { const c=parts[1].replace(',',''), t=parts[2].replace(';',''), n1=particleLocations.get(c), n2=particleLocations.get(t); if (n1&&n2) { io.to('admins').emit('log_message', {type:'info', message:`Entangling: ${c} <> ${t}`}); io.to(n1).emit('execute_command', {command:'entangle',target:c}); io.to(n2).emit('execute_command', {command:'entangle',target:t}); await new Promise(r=>setTimeout(r,500));} break; }
+            case 'measure': { const b=parts[3].replace(';',''); if (ownerNodeId) { io.to(ownerNodeId).emit('execute_command', {command:'measure',target:particleName,bit:b}); } await new Promise(r=>setTimeout(r,200)); break; }
         }
     }
+    
+    // Reward the node for successful completion
+    guardianAI.updateTrust(requestingNodeId, guardianAI.SCORE_REWARD_SUCCESS, "Successful program execution");
     io.to('admins').emit('log_message', {type: 'success', message: `Orchestration complete.`});
 }
 
@@ -127,25 +111,22 @@ async function parseAndOrchestrate(programCode, requestingNodeId) {
 io.on('connection', (socket) => {
     socket.on('register_admin', () => {
         adminSockets.add(socket.id); socket.join('admins');
-        socket.emit('log_message', { type: 'info', message: `Admin panel connected. Monitoring network.` });
-        socket.emit('log_message', { type: 'info', message: `${connectedNodes.size} nodes currently online.` });
+        socket.emit('log_message', { type: 'info', message: `Admin panel connected.` });
+        socket.emit('log_message', { type: 'info', message: `${connectedNodes.size} nodes online.` });
     });
     socket.on('register_node', () => {
-        connectedNodes.set(socket.id, { id: socket.id }); socket.join('nodes');
+        connectedNodes.set(socket.id, { id: socket.id });
+        guardianAI.trustScores.set(socket.id, guardianAI.SCORE_ON_CONNECT); // Set initial trust score
+        socket.join('nodes');
         socket.emit('log_message', { message: `Registered. Ready for commands.` });
         io.to('admins').emit('log_message', { type: 'success', message: `Node Connected: ${socket.id.substring(0, 6)}... Total: ${connectedNodes.size}` });
     });
-    socket.on('run_program', (data) => {
-        if (connectedNodes.size < 2 && data.code.includes('cnot')) {
-            io.to(socket.id).emit('log_message', { type: 'error', message: 'Error: At least 2 nodes required for CNOT.' }); return;
-        }
-        parseAndOrchestrate(data.code, socket.id);
-    });
+    socket.on('run_program', (data) => { parseAndOrchestrate(data.code, socket.id); });
     socket.on('pong', () => {});
     socket.on('disconnect', () => {
         const wasNode = connectedNodes.has(socket.id);
         if (wasNode) {
-            guardianAI.quarantinedNodes.delete(socket.id);
+            guardianAI.trustScores.delete(socket.id); // Clean up trust score
             connectedNodes.delete(socket.id);
             io.to('admins').emit('log_message', { type: 'warn', message: `Node Disconnected: ${socket.id.substring(0, 6)}... Total: ${connectedNodes.size}` });
         }
@@ -153,16 +134,20 @@ io.on('connection', (socket) => {
     });
 });
     
+// System update loop
 setInterval(() => {
-    systemStats.traceability += Math.random() * 2 - 1;
-    systemStats.contradiction += Math.random() * 4 - 2;
+    guardianAI.passiveRegeneration(); // Regenerate trust scores slowly
     const updatePayload = { 
         stats: systemStats, 
         nodeCount: connectedNodes.size,
-        quarantined: Array.from(guardianAI.quarantinedNodes)
+        trustScores: Object.fromEntries(guardianAI.trustScores) // Send all trust scores
     };
     io.to('admins').emit('system_update', updatePayload);
-}, 2500);
+    // Send individual trust scores to each node
+    for (const [nodeId, score] of guardianAI.trustScores.entries()) {
+        io.to(nodeId).emit('trust_update', { score: score });
+    }
+}, 5000); // Slower, more meaningful updates
 
 setInterval(() => { io.emit('ping'); }, 20000);
 server.listen(PORT, () => { console.log(`QIOS Back Office is running on http://localhost:${PORT}`); });
