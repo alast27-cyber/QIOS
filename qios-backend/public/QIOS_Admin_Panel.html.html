@@ -7,13 +7,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
+            --bg-color: #0f172a;
+            --panel-bg-color: #1e293b;
+            --border-color: rgba(56, 189, 248, 0.1);
+            --text-primary: #e5e7eb;
+            --text-secondary: #9ca3af;
+            --accent-cyan: #00f2ea;
             --accent-blue: #3b82f6;
-            --accent-green: #22c55e;
+            --accent-red: #f43f5e;
+            --accent-green: #34d399;
             --accent-orange: #f59e0b;
-            --accent-red: #ef4444;
-            --accent-purple: #8b5cf6;
             --font-family: 'Poppins', sans-serif;
         }
 
@@ -21,28 +24,15 @@
 
         body {
             font-family: var(--font-family);
-            background-color: #0c1222;
-            color: var(--text-dark);
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             padding: 2rem;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-image: url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
         }
 
-        .transparent-chip {
+        .admin-panel-container {
             width: 1400px;
             max-width: 95%;
-            background: rgba(15, 23, 42, 0.4); /* Semi-transparent dark blue */
-            border: 1px solid rgba(56, 189, 248, 0.2);
-            border-radius: 20px;
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            padding: 2rem;
+            margin: auto;
         }
 
         .admin-panel {
@@ -51,202 +41,134 @@
             gap: 1.5rem;
         }
 
-        .tablet {
-            background: white;
-            border-radius: 12px;
-            padding: 1.25rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        .panel {
+            background: var(--panel-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
         }
         
-        .panel-title { font-size: 1rem; font-weight: 500; color: var(--text-muted); margin: 0 0 1rem 0; }
-        
-        /* Header */
-        #header { color: white; padding: 0 0 1rem 0; }
-        #header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; }
-        #header p { margin: 0; color: #cbd5e1; }
-        
-        /* Stats Card */
-        .stat-card-main { display: flex; align-items: baseline; gap: 0.5rem; }
-        .stat-card-value { font-size: 1.75rem; font-weight: 600; color: var(--text-dark); line-height: 1; }
-        .stat-card-subtitle { font-size: 0.8rem; color: var(--text-muted); }
-        .stat-card-index { position: absolute; top: 1.25rem; right: 1.25rem; background: #f3f4f6; color: var(--text-dark); font-weight: 600; border-radius: 8px; padding: 0.25rem 0.5rem; font-size: 0.9rem; }
-        .progress-bar { height: 4px; background: #e5e7eb; border-radius: 2px; margin-top: 1rem; overflow: hidden; }
-        .progress-bar-inner { height: 100%; width: 50%; border-radius: 2px; transition: width 0.5s ease; }
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin: 0 0 1.5rem 0;
+        }
 
-        /* AI Status Panel */
+        #header { background: none; border: none; padding: 0 0 1rem 0; box-shadow: none; }
+        #header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: var(--text-primary); }
+        #header p { margin: 0; font-size: 1rem; color: var(--text-secondary); font-weight: 300; }
+        
+        .stat-card { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto auto; gap: 0.25rem 1rem; }
+        .stat-card-title { grid-column: 1 / 2; color: var(--text-secondary); font-size: 1rem; }
+        .stat-card-main { grid-column: 1 / 2; display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem; }
+        .stat-card-value { font-size: 1.75rem; font-weight: 600; color: var(--text-primary); line-height: 1; }
+        .stat-card-subtitle { font-size: 0.8rem; color: var(--text-secondary); }
+        .stat-card-index { grid-column: 2 / 3; grid-row: 1 / 4; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.5); border-radius: 8px; padding: 0 1rem; font-size: 1.25rem; font-weight: 600; }
+        .progress-bar { grid-column: 1 / 3; height: 4px; background: rgba(0, 0, 0, 0.3); border-radius: 2px; margin-top: 1rem; overflow: hidden; }
+        .progress-bar-inner { height: 100%; width: 50%; border-radius: 2px; }
+
         .toggle-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .toggle-label { font-size: 1rem; }
+        .toggle-label { font-size: 1rem; font-weight: 400; color: var(--text-primary); }
         .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #d1d5db; transition: .4s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #374151; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--accent-blue); }
         input:checked + .slider:before { transform: translateX(20px); }
         
         .progress-circle-container { display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; }
         .progress-circle { position: relative; width: 120px; height: 120px; }
         .progress-circle-bg, .progress-circle-fg { fill: none; stroke-width: 10; }
-        .progress-circle-bg { stroke: #e5e7eb; }
-        .progress-circle-fg { stroke: var(--accent-cyan); stroke-linecap: round; transform-origin: 50% 50%; transform: rotate(-90deg); filter: drop-shadow(0 0 5px var(--accent-cyan)); }
-        .progress-circle-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.8rem; font-weight: 600; color: var(--text-dark); }
-        .progress-circle-label { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem; }
-        
-        /* Entanglement Panel */
-        #entanglement-viz { display: flex; flex-grow: 1; flex-direction: column; justify-content: center; align-items: center; }
-        #entanglement-svg { width: 100%; height: 100px; }
-        #entanglement-path { stroke: url(#wave-gradient); stroke-width: 3; fill: none; filter: drop-shadow(0 0 8px var(--accent-blue)); }
-        .data-stream-circle { fill: white; stroke: var(--accent-blue); stroke-width: 3; }
-        .data-stream-text { fill: var(--text-dark); font-size: 24px; font-weight: 600; text-anchor: middle; alignment-baseline: middle; }
-        .entanglement-buttons { display: flex; gap: 1rem; margin-top: 1rem; width: 100%; }
-        .btn { background: #e5e7eb; color: var(--text-dark); border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
-        .btn.primary { background: var(--accent-blue); color: white; }
-        .btn.danger { background: var(--accent-red); color: white; }
-        
-        .input-field, .textarea-field { width: 100%; background: #f9fafb; border: 1px solid #d1d5db; color: var(--text-dark); border-radius: 8px; padding: 0.6rem; }
+        .progress-circle-bg { stroke: rgba(0, 0, 0, 0.3); }
+        .progress-circle-fg { stroke: var(--accent-cyan); stroke-linecap: round; transform-origin: 50% 50%; transform: rotate(-90deg); filter: drop-shadow(0 0 8px var(--accent-cyan)); }
+        .progress-circle-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.8rem; font-weight: 600; color: var(--text-primary); }
+        .progress-circle-label { text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem; }
 
-        /* Simulation Log */
-        #simulation-log-list { list-style: none; padding: 0; margin: 0; font-size: 0.9rem; flex-grow: 1; }
-        #simulation-log-list li { display: flex; align-items: center; margin-bottom: 0.75rem; }
-        #simulation-log-list li .checkbox { width: 16px; height: 16px; margin-right: 0.75rem; border: 2px solid; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
-        #simulation-log-list li .checkbox svg { width: 10px; height: 10px; stroke-width: 3; stroke: white; }
-        #simulation-log-list li.success .checkbox { border-color: var(--accent-green); background-color: var(--accent-green); }
-        #simulation-log-list li.failed .checkbox { border-color: var(--accent-red); }
-        #simulation-log-list li.pending .checkbox { border-color: var(--accent-purple); }
-        #simulation-log-list li.info .checkbox { border-color: var(--accent-blue); }
-
-        @keyframes wave { 0% { d: path("M 0 50 Q 75 0, 150 50 T 300 50"); } 50% { d: path("M 0 50 Q 75 100, 150 50 T 300 50"); } 100% { d: path("M 0 50 Q 75 0, 150 50 T 300 50"); } }
-        #entanglement-path.wavy { animation: wave 2s linear infinite; }
+        #entanglement-viz { display: flex; gap: 2rem; justify-content: center; align-items: center; flex-grow: 1; }
+        .data-stream-circle { width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--accent-cyan); background-color: var(--bg-color); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 600; box-shadow: 0 0 15px var(--accent-cyan); }
+        .entanglement-buttons { display: flex; gap: 1rem; margin-top: auto; width: 100%; }
+        .btn { background: #374151; color: var(--text-primary); border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem 1.2rem; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+        .btn:hover { filter: brightness(1.2); }
+        .btn.primary { background: var(--accent-blue); }
+        .input-field { width: 100%; background: #111827; border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; padding: 0.6rem; }
+        
+        .q-sim-item { margin-bottom: 2rem; }
+        .q-sim-item-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .q-sim-item-title { margin: 0; color: var(--text-primary); font-weight: 500; font-size: 1rem; }
+        .q-sim-item-subtitle { margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
+        .q-sim-item-value { font-size: 1.1rem; color: var(--text-primary); font-weight: 500; }
+        
+        .textarea-field { resize: none; flex-grow: 1; font-size: 0.8rem; line-height: 1.6; }
     </style>
 </head>
 <body>
-    <div class="transparent-chip">
+    <div class="admin-panel-container space-y-6">
         <div id="header">
             <h1>CHIPS Protocol Admin Panel</h1>
             <p>The back office for AI and browser management</p>
         </div>
         
-        <div class="admin-panel mt-6">
+        <div class="admin-panel">
             <!-- Row 1 -->
-            <div class="tablet col-span-3 relative">
-                <p class="panel-title">Current Phase</p>
+            <div class="panel col-span-3 stat-card">
+                <div class="stat-card-title">Current Phase</div>
                 <div class="stat-card-main"><span class="stat-card-value">1</span><span class="stat-card-subtitle">Scenitas test.6(b)</span></div>
                 <div class="stat-card-index" style="color: var(--accent-green);">1.12</div>
                 <div class="progress-bar"><div class="progress-bar-inner" style="width: 60%; background: var(--accent-green);"></div></div>
             </div>
-            <div class="tablet col-span-3 relative">
-                <p class="panel-title">Treceability Score</p>
+            <div class="panel col-span-3 stat-card">
+                <div class="stat-card-title">Treceability Score</div>
                 <div class="stat-card-main"><span class="stat-card-value">100</span><span class="stat-card-subtitle">Stenios best. 120</span></div>
                 <div class="stat-card-index" style="color: var(--accent-orange);">1.12</div>
                 <div class="progress-bar"><div class="progress-bar-inner" style="width: 83%; background: var(--accent-orange);"></div></div>
             </div>
-            <div class="tablet col-span-3 relative">
-                <p class="panel-title">Contradiction Index</p>
+            <div class="panel col-span-3 stat-card">
+                <div class="stat-card-title">Contradiction Index</div>
                 <div class="stat-card-main"><span class="stat-card-value">600</span><span class="stat-card-subtitle">Senios oec. 600</span></div>
                 <div class="stat-card-index" style="color: var(--accent-red);">1.2</div>
                 <div class="progress-bar"><div class="progress-bar-inner" style="width: 100%; background: var(--accent-red);"></div></div>
             </div>
             
-            <div class="tablet col-span-3 row-span-4">
-                 <h2 class="panel-title">Simulation Log</h2>
-                 <ul id="simulation-log-list"></ul>
-            </div>
-
             <!-- Row 2 -->
-            <div class="tablet col-span-3 row-span-2">
+            <div class="panel col-span-3">
                 <h2 class="panel-title">AI Status & Progress</h2>
                 <div class="toggle-group"><span class="toggle-label">Enable AI-Assisted Browsing</span><label class="toggle-switch"><input type="checkbox" checked><span class="slider"></span></label></div>
                 <div class="toggle-group"><span class="toggle-label">Permissionless Data Access</span><label class="toggle-switch"><input type="checkbox"><span class="slider"></span></label></div>
                 <div class="progress-circle-container"><div class="progress-circle"><svg viewBox="0 0 120 120" width="120" height="120"><circle class="progress-circle-bg" cx="60" cy="60" r="50"></circle><circle class="progress-circle-fg" cx="60" cy="60" r="50" style="stroke-dasharray: 314; stroke-dashoffset: 15.7;"></circle></svg><div class="progress-circle-text">95%</div></div><p class="progress-circle-label">Data Sanitization Rate</p></div>
             </div>
-            <div class="tablet col-span-6 row-span-2">
+            <div class="panel col-span-4">
                 <h2 class="panel-title">Quantum Entanglement & Data Coherence</h2>
-                <div id="entanglement-viz">
-                    <svg id="entanglement-svg" viewBox="0 0 300 100">
-                        <defs><linearGradient id="wave-gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#00f2ea;" /><stop offset="100%" style="stop-color:#3b82f6;" /></linearGradient></defs>
-                        <path id="entanglement-path" d="M 0 50 Q 75 50, 150 50 T 300 50"></path>
-                        <g><circle class="data-stream-circle" cx="75" cy="50" r="25"></circle><text class="data-stream-text" x="75" y="50">42</text></g>
-                        <g><circle class="data-stream-circle" cx="225" cy="50" r="25"></circle><text class="data-stream-text" x="225" y="50">42</text></g>
-                    </svg>
-                </div>
-                <div class="entanglement-buttons"><button class="btn primary" id="establish-link-btn" style="width: 50%;">Establish Entangled Link</button><button class="btn" style="width: 50%;">Run Coherence Check</button></div>
+                <div id="entanglement-viz"><div class="data-stream-circle">42</div><div class="data-stream-circle">42</div></div>
+                <div class="entanglement-buttons"><button class="btn primary" style="width: 50%;">Establish Entangled Link</button><button class="btn" style="width: 50%;">Run Coherence Check</button></div>
             </div>
-            
-            <!-- Row 3 -->
-            <div class="tablet col-span-3">
-                 <h2 class="panel-title">Quantum Tunnelling Simulation</h2>
-                 <p class="text-2xl font-bold">95%</p>
-                 <p class="text-sm text-muted">Dest Santasion Rote</p>
-            </div>
-             <div class="tablet col-span-3">
-                 <h2 class="panel-title">Quantum Tunnelling Simulation</h2>
-                 <div class="flex justify-between items-center"><p>Trinitios Protectiong</p><label class="toggle-switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-            </div>
-             <div class="tablet col-span-3 flex justify-center items-center">
-                 <button class="btn" style="width: 100%;">Initiate Tunnel</button>
-            </div>
-            
-            <!-- Row 4 -->
-            <div class="tablet col-span-3">
-                <h2 class="panel-title">Integrity & Stress Testing</h2>
-                <p class="text-gray-500 text-sm mb-2">Inject Vals Data</p>
-                <input type="text" class="input-field mb-4" placeholder="Enter AI lossene for Stream B">
-                <button class="btn primary" style="align-self: flex-end;">Inject</button>
-            </div>
-            <div class="tablet col-span-3">
-                <h2 class="panel-title">Integrity & Stress Testing</h2>
-                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                    <button class="btn danger" style="flex-grow: 1;">Trigger Contradiction</button>
-                    <button class="btn">Bert Bestention</button>
-                </div>
-                <p class="text-gray-500 text-sm mb-1">Desaotted Index</p><input type="number" class="input-field" value="0">
-            </div>
-            <div class="tablet col-span-3">
-                 <h2 class="panel-title">Simulation & Training</h2>
-                 <textarea class="textarea-field h-32 bg-gray-50 font-mono text-xs" readonly>Initializing training environment...</textarea>
+            <div class="panel col-span-3">
+                <h2 class="panel-title">Quantum Simulations</h2>
+                <div class="q-sim-item"><div class="q-sim-item-header"><div class="q-sim-item-text-group"><p class="q-sim-item-title">Quantum Tunnelling Simulation</p><p class="q-sim-item-subtitle">Dest Santasion Rote</p></div><span class="q-sim-item-value">95%</span></div></div>
+                <div class="q-sim-item"><div class="q-sim-item-header"><div class="q-sim-item-text-group"><p class="q-sim-item-title">Quantum Tunnelling Simulation</p><p class="q-sim-item-subtitle">Trinitios Protectiong</p></div><label class="toggle-switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+                <button class="btn" style="margin-top: auto;">Initiate Tunnel</button>
             </div>
 
+            <!-- Row 3 & 4 (Empty spacers to match the layout) -->
+            <div class="panel col-span-2"></div>
+            <div class="panel col-span-2"></div>
         </div>
+        
+        <div class="admin-panel mt-6">
+            <div class="panel col-span-6">
+                <h2 class="panel-title">Integrity & Stress Testing</h2>
+                <p class="text-gray-400 text-sm mb-2">Inject Vals Data</p>
+                <input type="text" class="input-field" placeholder="Enter AI lossene for Stream B">
+            </div>
+            <div class="panel col-span-6">
+                 <h2 class="panel-title">Simulation & Training</h2>
+                 <textarea class="textarea-field h-24 bg-gray-900 font-mono text-sm" readonly>Initializing training...</textarea>
+            </div>
+        </div>
+
     </div>
-<script>
-    // This is a static visual mockup, but we'll add some life to it.
-    document.addEventListener('DOMContentLoaded', () => {
-        const establishLinkBtn = document.getElementById('establish-link-btn');
-        const entanglementPath = document.getElementById('entanglement-path');
-        const simLogList = document.getElementById('simulation-log-list');
-
-        establishLinkBtn.addEventListener('click', () => {
-            establishLinkBtn.classList.toggle('danger');
-            entanglementPath.classList.toggle('wavy');
-            if (establishLinkBtn.classList.contains('danger')) {
-                establishLinkBtn.textContent = 'Sever Entangled Link';
-            } else {
-                establishLinkBtn.textContent = 'Establish Entangled Link';
-            }
-        });
-
-        // Simulate log entries appearing
-        const logTemplates = [
-            { type: 'success', text: 'Asewjen testload' }, { type: 'success', text: 'Ansinse oetinatand' },
-            { type: 'info', text: 'Praknia omoebrne 2 Dwnbtoas' }, { type: 'success', text: 'AI engine generated' },
-            { type: 'info', text: 'Aswian lunean bwndeck' }, { type: 'pending', text: 'Resolving cronesteck bias' },
-            { type: 'failed', text: 'Alvaer oinest chsoot [FAILED]' }, { type: 'success', text: 'Morphdotcker cleas' },
-            { type: 'info', text: 'Seet Gerincoem Srovidam' }
-        ];
-
-        let logCounter = 0;
-        setInterval(() => {
-            if (logCounter >= logTemplates.length) return;
-            const entry = logTemplates[logCounter];
-            const li = document.createElement('li');
-            li.className = entry.type;
-            const checkSVG = `<svg viewBox="0 0 16 16"><path fill="none" d="M3.5 8.5l3 3l6-6"/></svg>`;
-            li.innerHTML = `<div class="checkbox">${entry.type === 'success' ? checkSVG : ''}</div><span>${entry.text}</span>`;
-            simLogList.appendChild(li);
-            logCounter++;
-        }, 1000);
-    });
-</script>
 </body>
 </html>
