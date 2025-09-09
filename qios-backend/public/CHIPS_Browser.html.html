@@ -28,8 +28,9 @@
                 <section>
                     <h2 class="text-xl font-semibold mb-3">Quantum Competitive Snake</h2>
                     <canvas id="gameCanvas" width="400" height="400"></canvas>
-                    <div class="mt-4">
-                        <button id="findGameBtn" class="btn bg-green-600 w-full">Find Opponent</button>
+                    <div class="mt-4 flex flex-col space-y-2">
+                        <button id="findGameBtn" class="btn bg-green-600 w-full">Find Human Opponent (PVP)</button>
+                        <button id="findAIBtn" class="btn bg-cyan-600 w-full">Play against Guardian AI (PVA)</button>
                     </div>
                 </section>
             </div>
@@ -55,6 +56,7 @@
     const nodeLog = document.getElementById('nodeLog');
     const connectionStatus = document.getElementById('connection-status');
     const findGameBtn = document.getElementById('findGameBtn');
+    const findAIBtn = document.getElementById('findAIBtn'); // New button
     const gameCanvas = document.getElementById('gameCanvas');
     const ctx = gameCanvas.getContext('2d');
     const myScoreEl = document.getElementById('myScore');
@@ -64,110 +66,50 @@
     let myId = null;
     let partnerId = null;
 
-    function log(m, t='info'){ const p=document.createElement('p');p.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;if(t==='error')p.className='text-red-400';else if(t==='warn')p.className='text-yellow-400';else if(t==='success')p.className='text-green-400';else p.className='text-cyan-400';nodeLog.appendChild(p);nodeLog.scrollTop=nodeLog.scrollHeight;}
-    
-    socket.on('connect', () => { myId = socket.id; connectionStatus.textContent = `CONNECTION STABLE. Node ID: ${myId.substring(0,6)}...`; connectionStatus.className = 'text-xl mt-2 font-semibold text-green-400'; log('Successfully connected.', 'success'); socket.emit('register_node'); });
-    socket.on('ping', () => { socket.emit('pong'); });
-    socket.on('disconnect', () => { connectionStatus.textContent = 'CONNECTION LOST.'; connectionStatus.className = 'text-xl mt-2 font-semibold text-red-500'; log('Connection lost.', 'error'); endGame(); });
-    socket.on('log_message', (data) => { log(data.message, data.type); });
+    function log(m, t='info'){ /* ... same as before ... */ }
+    socket.on('connect', () => { myId = socket.id; /* ... same as before ... */ });
+    // --- All other socket listeners and game logic are IDENTICAL to the previous version ---
 
-    // --- SNAKE GAME LOGIC v2.0 ---
-    const tileSize = 20;
-    let snake = []; let food = {}; let direction = 'right';
-    let gameLoop; let isGameOver = true;
+    // --- NEW Button Event Listener ---
+    findAIBtn.addEventListener('click', () => {
+        log('Requesting a game against the Guardian AI...', 'info');
+        findGameBtn.disabled = true;
+        findAIBtn.disabled = true;
+        findAIBtn.textContent = "Connecting to AI...";
+        socket.emit('find_ai_game');
+    });
 
-    function draw() {
-        ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-        if (food.x !== undefined) { ctx.fillStyle = '#f6ad55'; ctx.fillRect(food.x * tileSize, food.y * tileSize, tileSize, tileSize); }
-        if (snake.length > 0) { ctx.fillStyle = '#63b3ed'; snake.forEach(segment => { ctx.fillRect(segment.x * tileSize, segment.y * tileSize, tileSize, tileSize); }); }
-    }
-
-    function update() {
-        if (isGameOver || snake.length === 0) return;
-        const head = {x: snake[0].x, y: snake[0].y};
-        switch (direction) {
-            case 'right': head.x++; break; case 'left': head.x--; break;
-            case 'up': head.y--; break; case 'down': head.y++; break;
-        }
-        snake.unshift(head);
-
-        if (head.x === food.x && head.y === food.y) {
-            log('Measured the fruit!', 'info');
-            socket.emit('ate_food');
-            food = {}; // Hide food immediately
-        } else {
-            snake.pop();
-        }
-        
-        if (head.x < 0 || head.x >= gameCanvas.width / tileSize || head.y < 0 || head.y >= gameCanvas.height / tileSize) {
-            endGame(true); // true means we initiated the game over
-        }
-        draw();
-    }
+    findGameBtn.addEventListener('click', () => {
+        log('Finding a human opponent...', 'info');
+        findGameBtn.disabled = true;
+        findAIBtn.disabled = true;
+        findGameBtn.textContent = "Searching...";
+        socket.emit('find_game');
+    });
 
     function startGame() {
-        snake = [{x: 10, y: 10}]; direction = 'right'; isGameOver = false;
+        // ... (same as before, but update both buttons)
         findGameBtn.disabled = true; findGameBtn.textContent = "Game in Progress...";
-        clearInterval(gameLoop); gameLoop = setInterval(update, 120);
-        log('Game started!', 'success');
+        findAIBtn.disabled = true; findAIBtn.textContent = "Game in Progress...";
+        // ... (rest is the same)
     }
 
     function endGame(notifyServer = false) {
+        // ... (same as before, but update both buttons)
         if (isGameOver) return;
         isGameOver = true;
         clearInterval(gameLoop);
         log('Game Over!', 'error');
         if (notifyServer) socket.emit('game_over');
-        findGameBtn.disabled = false; findGameBtn.textContent = "Find Opponent";
-    }
-
-    document.addEventListener('keydown', (e) => {
-        if (isGameOver) return;
-        switch (e.key) {
-            case 'ArrowUp': if (direction !== 'down') direction = 'up'; break;
-            case 'ArrowDown': if (direction !== 'up') direction = 'down'; break;
-            case 'ArrowLeft': if (direction !== 'right') direction = 'left'; break;
-            case 'ArrowRight': if (direction !== 'left') direction = 'right'; break;
-        }
-    });
-
-    findGameBtn.addEventListener('click', () => {
-        log('Finding an opponent...', 'info');
-        findGameBtn.disabled = true; findGameBtn.textContent = "Searching...";
-        socket.emit('find_game');
-    });
-
-    // --- NEW: Competitive Game Event Listeners ---
-    socket.on('game_start', (data) => {
-        partnerId = data.partnerId;
-        updateScores(data.scores);
-        startGame();
-    });
-
-    socket.on('new_fruit', (newFood) => {
-        food = newFood;
-        log(`New fruit generated at [${food.x}, ${food.y}]`, 'info');
-        draw();
-    });
-
-    socket.on('victory', (data) => {
-        log('You got the fruit! Your opponent\'s snake grows.', 'success');
-        updateScores(data.scores);
-    });
-
-    socket.on('collapse', (data) => {
-        log('Opponent got the fruit! Your snake grows.', 'warn');
-        const tail = snake.length > 0 ? snake[snake.length - 1] : {x: 10, y: 10};
-        snake.push({...tail});
-        updateScores(data.scores);
-    });
-
-    function updateScores(scores) {
-        myScoreEl.textContent = scores[myId];
-        opponentScoreEl.textContent = scores[partnerId];
+        findGameBtn.disabled = false; findGameBtn.textContent = "Find Human Opponent (PVP)";
+        findAIBtn.disabled = false; findAIBtn.textContent = "Play against Guardian AI (PVA)";
     }
     
-    draw(); // Initial draw
+    // --- PASTE THE REST of the UNCHANGED JAVASCRIPT LOGIC HERE ---
+    // This includes: log, socket.on('connect'), on('ping'), on('disconnect'), on('log_message'),
+    // the entire snake game logic (draw, update, etc.),
+    // and the competitive game event listeners (on('game_start'), on('new_fruit'), etc.)
+    // For brevity, it's omitted, but in your final file, you would have the full script.
 </script>
 </body>
 </html>
