@@ -24,18 +24,25 @@
 
         <div class="grid-container">
             <!-- Left Column: Game -->
-            <div class="space-y-6">
+            <div class="space-y-4">
                 <section>
-                    <h2 class="text-xl font-semibold mb-3">Quantum Entangled Snake</h2>
+                    <h2 class="text-xl font-semibold mb-3">Quantum Competitive Snake</h2>
                     <canvas id="gameCanvas" width="400" height="400"></canvas>
                     <div class="mt-4">
-                        <button id="findGameBtn" class="btn bg-green-600 w-full">Find Entangled Partner</button>
+                        <button id="findGameBtn" class="btn bg-green-600 w-full">Find Opponent</button>
                     </div>
                 </section>
             </div>
 
-            <!-- Right Column: Log -->
+            <!-- Right Column: Log and Scoreboard -->
             <div class="space-y-6">
+                <section>
+                    <h2 class="text-xl font-semibold mb-3">Scoreboard</h2>
+                    <div class="bg-gray-800 p-4 rounded-lg text-center">
+                        <p class="text-2xl"><span class="text-cyan-400">You:</span> <span id="myScore">0</span></p>
+                        <p class="text-2xl"><span class="text-pink-400">Opponent:</span> <span id="opponentScore">0</span></p>
+                    </div>
+                </section>
                 <section>
                     <h2 class="text-xl font-semibold mb-3">Node Log</h2>
                     <div id="nodeLog" class="console"></div>
@@ -50,82 +57,68 @@
     const findGameBtn = document.getElementById('findGameBtn');
     const gameCanvas = document.getElementById('gameCanvas');
     const ctx = gameCanvas.getContext('2d');
+    const myScoreEl = document.getElementById('myScore');
+    const opponentScoreEl = document.getElementById('opponentScore');
     
     const socket = io("https://qios-2.onrender.com", { transports: ['websocket'] });
+    let myId = null;
+    let partnerId = null;
 
-    function log(message, type = 'info') { const p = document.createElement('p'); p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`; if (type === 'error') p.className = 'text-red-400'; else if (type === 'warn') p.className = 'text-yellow-400'; else if (type === 'success') p.className = 'text-green-400'; else p.className = 'text-cyan-400'; nodeLog.appendChild(p); nodeLog.scrollTop = nodeLog.scrollHeight; }
+    function log(m, t='info'){ const p=document.createElement('p');p.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;if(t==='error')p.className='text-red-400';else if(t==='warn')p.className='text-yellow-400';else if(t==='success')p.className='text-green-400';else p.className='text-cyan-400';nodeLog.appendChild(p);nodeLog.scrollTop=nodeLog.scrollHeight;}
     
-    socket.on('connect', () => { connectionStatus.textContent = `CONNECTION STABLE. Node ID: ${socket.id.substring(0,6)}...`; connectionStatus.className = 'text-xl mt-2 font-semibold text-green-400'; log('Successfully connected to QIOS Back Office.', 'success'); socket.emit('register_node'); });
+    socket.on('connect', () => { myId = socket.id; connectionStatus.textContent = `CONNECTION STABLE. Node ID: ${myId.substring(0,6)}...`; connectionStatus.className = 'text-xl mt-2 font-semibold text-green-400'; log('Successfully connected.', 'success'); socket.emit('register_node'); });
     socket.on('ping', () => { socket.emit('pong'); });
-    socket.on('disconnect', () => { connectionStatus.textContent = 'CONNECTION LOST. RECONNECTING...'; connectionStatus.className = 'text-xl mt-2 font-semibold text-red-500'; log('Connection lost.', 'error'); endGame(); });
+    socket.on('disconnect', () => { connectionStatus.textContent = 'CONNECTION LOST.'; connectionStatus.className = 'text-xl mt-2 font-semibold text-red-500'; log('Connection lost.', 'error'); endGame(); });
     socket.on('log_message', (data) => { log(data.message, data.type); });
 
-    // --- SNAKE GAME LOGIC ---
+    // --- SNAKE GAME LOGIC v2.0 ---
     const tileSize = 20;
-    let snake = [];
-    let food = {};
-    let direction = 'right';
-    let gameLoop;
-    let isGameOver = false;
+    let snake = []; let food = {}; let direction = 'right';
+    let gameLoop; let isGameOver = true;
 
-    function generateFood() { food = { x: Math.floor(Math.random() * (gameCanvas.width / tileSize)), y: Math.floor(Math.random() * (gameCanvas.height / tileSize)) }; }
     function draw() {
         ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-        if (food.x !== undefined) {
-             ctx.fillStyle = '#f6ad55';
-             ctx.fillRect(food.x * tileSize, food.y * tileSize, tileSize, tileSize);
-        }
-        if (snake.length > 0) {
-            ctx.fillStyle = '#63b3ed';
-            snake.forEach(segment => { ctx.fillRect(segment.x * tileSize, segment.y * tileSize, tileSize, tileSize); });
-        }
+        if (food.x !== undefined) { ctx.fillStyle = '#f6ad55'; ctx.fillRect(food.x * tileSize, food.y * tileSize, tileSize, tileSize); }
+        if (snake.length > 0) { ctx.fillStyle = '#63b3ed'; snake.forEach(segment => { ctx.fillRect(segment.x * tileSize, segment.y * tileSize, tileSize, tileSize); }); }
     }
 
     function update() {
         if (isGameOver || snake.length === 0) return;
         const head = {x: snake[0].x, y: snake[0].y};
         switch (direction) {
-            case 'right': head.x++; break;
-            case 'left': head.x--; break;
-            case 'up': head.y--; break;
-            case 'down': head.y++; break;
+            case 'right': head.x++; break; case 'left': head.x--; break;
+            case 'up': head.y--; break; case 'down': head.y++; break;
         }
         snake.unshift(head);
 
         if (head.x === food.x && head.y === food.y) {
-            log('Ate food! Notifying partner...', 'info');
+            log('Measured the fruit!', 'info');
             socket.emit('ate_food');
-            generateFood();
+            food = {}; // Hide food immediately
         } else {
             snake.pop();
         }
         
         if (head.x < 0 || head.x >= gameCanvas.width / tileSize || head.y < 0 || head.y >= gameCanvas.height / tileSize) {
-            endGame();
+            endGame(true); // true means we initiated the game over
         }
         draw();
     }
 
     function startGame() {
-        snake = [{x: 10, y: 10}];
-        direction = 'right';
-        isGameOver = false;
-        findGameBtn.disabled = true;
-        findGameBtn.textContent = "Game in Progress...";
-        generateFood();
-        clearInterval(gameLoop);
-        gameLoop = setInterval(update, 120);
+        snake = [{x: 10, y: 10}]; direction = 'right'; isGameOver = false;
+        findGameBtn.disabled = true; findGameBtn.textContent = "Game in Progress...";
+        clearInterval(gameLoop); gameLoop = setInterval(update, 120);
         log('Game started!', 'success');
     }
 
-    function endGame() {
+    function endGame(notifyServer = false) {
+        if (isGameOver) return;
+        isGameOver = true;
         clearInterval(gameLoop);
-        if (!isGameOver) {
-            isGameOver = true;
-            log('Game Over!', 'error');
-            findGameBtn.disabled = false;
-            findGameBtn.textContent = "Find Entangled Partner";
-        }
+        log('Game Over!', 'error');
+        if (notifyServer) socket.emit('game_over');
+        findGameBtn.disabled = false; findGameBtn.textContent = "Find Opponent";
     }
 
     document.addEventListener('keydown', (e) => {
@@ -139,25 +132,42 @@
     });
 
     findGameBtn.addEventListener('click', () => {
-        log('Finding an entangled partner...', 'info');
-        findGameBtn.disabled = true;
-        findGameBtn.textContent = "Searching...";
+        log('Finding an opponent...', 'info');
+        findGameBtn.disabled = true; findGameBtn.textContent = "Searching...";
         socket.emit('find_game');
     });
 
+    // --- NEW: Competitive Game Event Listeners ---
     socket.on('game_start', (data) => {
-        log(`Partner found: ${data.partnerId.substring(0,6)}... Entanglement established!`, 'success');
+        partnerId = data.partnerId;
+        updateScores(data.scores);
         startGame();
     });
 
-    socket.on('entangled_growth', () => {
-        if (isGameOver) return;
-        log('Received entangled growth command from partner!', 'warn');
+    socket.on('new_fruit', (newFood) => {
+        food = newFood;
+        log(`New fruit generated at [${food.x}, ${food.y}]`, 'info');
+        draw();
+    });
+
+    socket.on('victory', (data) => {
+        log('You got the fruit! Your opponent\'s snake grows.', 'success');
+        updateScores(data.scores);
+    });
+
+    socket.on('collapse', (data) => {
+        log('Opponent got the fruit! Your snake grows.', 'warn');
         const tail = snake.length > 0 ? snake[snake.length - 1] : {x: 10, y: 10};
         snake.push({...tail});
+        updateScores(data.scores);
     });
+
+    function updateScores(scores) {
+        myScoreEl.textContent = scores[myId];
+        opponentScoreEl.textContent = scores[partnerId];
+    }
     
     draw(); // Initial draw
 </script>
 </body>
-</html>```
+</html>
