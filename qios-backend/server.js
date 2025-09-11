@@ -7,8 +7,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Default route
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html.html'));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'qios-backend/public/admin.html')));
 });
 
 // Health check route
@@ -19,4 +18,5 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
+
 
