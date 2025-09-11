@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHIPS:// Browser & Quantum Node</title>
+    <link href="https://fonts.googleapis.com/css?family=Poppins:400,500,700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
@@ -16,6 +17,11 @@
     </style>
 </head>
 <body class="p-6">
+    <noscript>
+        <div style="color: red; background: #1e293b; padding: 1em; border-radius: 8px; text-align: center;">
+            This page requires JavaScript to run the Quantum Snake game.
+        </div>
+    </noscript>
     <div class="max-w-7xl mx-auto space-y-6">
         <header>
             <h1 class="text-3xl font-bold">CHIPS:// Browser & Quantum Node</h1>
@@ -53,29 +59,77 @@
     </div>
 
 <script>
+    // UI Elements
     const nodeLog = document.getElementById('nodeLog');
     const connectionStatus = document.getElementById('connection-status');
     const findGameBtn = document.getElementById('findGameBtn');
-    const findAIBtn = document.getElementById('findAIBtn'); // New button
+    const findAIBtn = document.getElementById('findAIBtn');
     const gameCanvas = document.getElementById('gameCanvas');
     const ctx = gameCanvas.getContext('2d');
     const myScoreEl = document.getElementById('myScore');
     const opponentScoreEl = document.getElementById('opponentScore');
-    
-    const socket = io("https://qios-2.onrender.com", { transports: ['websocket'] });
+
+    // State
     let myId = null;
     let partnerId = null;
+    let isGameOver = false;
+    let gameLoop = null;
+    let currentGameType = null; // 'PVP' or 'PVA'
 
-    function log(m, t='info'){ /* ... same as before ... */ }
-    socket.on('connect', () => { myId = socket.id; /* ... same as before ... */ });
-    // --- All other socket listeners and game logic are IDENTICAL to the previous version ---
+    // Snake Game State
+    let snake = [];
+    let direction = 'right';
+    let nextDirection = 'right';
+    let fruit = null;
+    let opponentSnake = [];
+    let opponentFruit = null;
+    let myScore = 0;
+    let opponentScore = 0;
+    let gridSize = 20;
+    let cellSize = 20;
 
-    // --- NEW Button Event Listener ---
+    // Logging utility
+    function log(message, type='info') {
+        const el = document.createElement('div');
+        if (type === 'error') el.style.color = '#f87171';
+        else if (type === 'info') el.style.color = '#38bdf8';
+        else if (type === 'success') el.style.color = '#22d3ee';
+        else el.style.color = '#e5e7eb';
+        el.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        nodeLog.appendChild(el);
+        nodeLog.scrollTop = nodeLog.scrollHeight;
+    }
+
+    // Socket.IO connection
+    const socket = io("https://qios-2.onrender.com", { transports: ['websocket'] });
+
+    socket.on('connect', () => {
+        myId = socket.id;
+        log(`Connected to back office. Node ID: ${myId}`, 'success');
+        connectionStatus.textContent = "Connected to Back Office!";
+        connectionStatus.classList.remove('text-red-500');
+        connectionStatus.classList.add('text-green-400');
+    });
+
+    socket.on('disconnect', () => {
+        log('Disconnected from back office.', 'error');
+        connectionStatus.textContent = "Disconnected from Back Office!";
+        connectionStatus.classList.remove('text-green-400');
+        connectionStatus.classList.add('text-red-500');
+        endGame(false);
+    });
+
+    socket.on('log_message', (msg) => {
+        log(msg, 'info');
+    });
+
+    // Game matchmaking
     findAIBtn.addEventListener('click', () => {
         log('Requesting a game against the Guardian AI...', 'info');
         findGameBtn.disabled = true;
         findAIBtn.disabled = true;
         findAIBtn.textContent = "Connecting to AI...";
+        currentGameType = 'PVA';
         socket.emit('find_ai_game');
     });
 
@@ -84,18 +138,78 @@
         findGameBtn.disabled = true;
         findAIBtn.disabled = true;
         findGameBtn.textContent = "Searching...";
+        currentGameType = 'PVP';
         socket.emit('find_game');
     });
 
+    socket.on('game_start', (data) => {
+        log('Game started! Good luck!', 'success');
+        partnerId = data.partnerId;
+        resetGame();
+        startGame();
+    });
+
+    socket.on('ai_game_start', () => {
+        log('You are playing against the Guardian AI!', 'success');
+        partnerId = 'AI';
+        resetGame();
+        startGame();
+    });
+
+    socket.on('new_fruit', (data) => {
+        fruit = data.fruit;
+    });
+
+    socket.on('opponent_update', (data) => {
+        opponentSnake = data.snake;
+        opponentFruit = data.fruit;
+        opponentScore = data.score;
+        opponentScoreEl.textContent = opponentScore;
+    });
+
+    socket.on('score_update', (data) => {
+        myScore = data.myScore;
+        opponentScore = data.opponentScore;
+        myScoreEl.textContent = myScore;
+        opponentScoreEl.textContent = opponentScore;
+    });
+
+    socket.on('game_over', (data) => {
+        endGame(false);
+        if (data && data.reason) log(`Game Over: ${data.reason}`, 'error');
+    });
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' && direction !== 'right') nextDirection = 'left';
+        else if (e.key === 'ArrowUp' && direction !== 'down') nextDirection = 'up';
+        else if (e.key === 'ArrowRight' && direction !== 'left') nextDirection = 'right';
+        else if (e.key === 'ArrowDown' && direction !== 'up') nextDirection = 'down';
+    });
+
+    function resetGame() {
+        snake = [{ x: 10, y: 10 }];
+        opponentSnake = [];
+        direction = 'right';
+        nextDirection = 'right';
+        fruit = { x: 15, y: 10 };
+        myScore = 0;
+        opponentScore = 0;
+        myScoreEl.textContent = "0";
+        opponentScoreEl.textContent = "0";
+        isGameOver = false;
+        clearInterval(gameLoop);
+        drawGame();
+    }
+
     function startGame() {
-        // ... (same as before, but update both buttons)
         findGameBtn.disabled = true; findGameBtn.textContent = "Game in Progress...";
         findAIBtn.disabled = true; findAIBtn.textContent = "Game in Progress...";
-        // ... (rest is the same)
+        isGameOver = false;
+        gameLoop = setInterval(gameTick, 120);
     }
 
     function endGame(notifyServer = false) {
-        // ... (same as before, but update both buttons)
         if (isGameOver) return;
         isGameOver = true;
         clearInterval(gameLoop);
@@ -104,12 +218,79 @@
         findGameBtn.disabled = false; findGameBtn.textContent = "Find Human Opponent (PVP)";
         findAIBtn.disabled = false; findAIBtn.textContent = "Play against Guardian AI (PVA)";
     }
-    
-    // --- PASTE THE REST of the UNCHANGED JAVASCRIPT LOGIC HERE ---
-    // This includes: log, socket.on('connect'), on('ping'), on('disconnect'), on('log_message'),
-    // the entire snake game logic (draw, update, etc.),
-    // and the competitive game event listeners (on('game_start'), on('new_fruit'), etc.)
-    // For brevity, it's omitted, but in your final file, you would have the full script.
+
+    function gameTick() {
+        direction = nextDirection;
+        // Move snake
+        const head = { ...snake[0] };
+        if (direction === 'left') head.x -= 1;
+        else if (direction === 'right') head.x += 1;
+        else if (direction === 'up') head.y -= 1;
+        else if (direction === 'down') head.y += 1;
+
+        // Check collision
+        if (
+            head.x < 0 || head.x >= gridSize ||
+            head.y < 0 || head.y >= gridSize ||
+            snake.some(segment => segment.x === head.x && segment.y === head.y)
+        ) {
+            endGame(true);
+            return;
+        }
+
+        snake.unshift(head);
+
+        // Fruit check
+        if (fruit && head.x === fruit.x && head.y === fruit.y) {
+            myScore += 1;
+            myScoreEl.textContent = myScore;
+            socket.emit('ate_fruit', { snake, score: myScore });
+        } else {
+            snake.pop();
+        }
+
+        // Send update to server
+        socket.emit('player_update', {
+            snake,
+            fruit,
+            score: myScore
+        });
+
+        drawGame();
+    }
+
+    function drawGame() {
+        // Clear
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+        // Draw fruit
+        if (fruit) {
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(fruit.x * cellSize, fruit.y * cellSize, cellSize, cellSize);
+        }
+
+        // Draw my snake
+        ctx.fillStyle = '#3b82f6';
+        snake.forEach((segment, idx) => {
+            ctx.fillRect(segment.x * cellSize, segment.y * cellSize, cellSize, cellSize);
+        });
+
+        // Draw opponent snake
+        ctx.fillStyle = '#f472b6';
+        opponentSnake.forEach(segment => {
+            ctx.fillRect(segment.x * cellSize, segment.y * cellSize, cellSize, cellSize);
+        });
+    }
+
+    // Ping-pong keepalive
+    setInterval(() => {
+        if (socket.connected) socket.emit('ping');
+    }, 10000);
+
+    socket.on('pong', () => {
+        // Optional for logging
+    });
 </script>
 </body>
 </html>
