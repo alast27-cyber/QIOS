@@ -1,66 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHIPS Protocol Admin Panel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #0f172a; color: #e5e7eb; }
-        .panel { background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.1); border-radius: 16px; padding: 1.5rem; }
-        .stat-card-value { font-size: 3rem; font-weight: 700; }
-        #simulation-log-list { list-style: none; padding: 0; margin: 0; font-size: 0.9rem; }
-        #simulation-log-list li { display: flex; align-items: center; margin-bottom: 0.75rem; }
-        #simulation-log-list li.success { color: #22c55e; } #simulation-log-list li.warn { color: #f59e0b; } #simulation-log-list li.info { color: #3b82f6; }
-    </style>
-</head>
-<body class="p-6">
-    <div class="max-w-4xl mx-auto space-y-6">
-        <h1 class="text-3xl font-bold text-center">CHIPS Protocol Admin Panel</h1>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="panel text-center">
-                <h2 class="text-xl font-semibold text-gray-400">Live Connected Nodes</h2>
-                <p id="stat-nodes-value" class="stat-card-value text-cyan-400">0</p>
-            </div>
-            <div class="panel">
-                <h2 class="text-xl font-semibold text-gray-400 mb-4">Live Network Log</h2>
-                <ul id="simulation-log-list" class="h-48 overflow-y-auto"></ul>
-            </div>
-        </div>
-    </div>
+const express = require('express');
+const path = require('path');
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const elems = {
-            nodes: document.getElementById('stat-nodes-value'),
-            simLogList: document.getElementById('simulation-log-list'),
-        };
+// Serve static files from the "public" directory
+app.use(express.static(path.join(__dirname, 'public')));
 
-        const addLogEntry = (log) => {
-            const { type, message } = log;
-            const li = document.createElement('li');
-            li.className = type;
-            li.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            elems.simLogList.prepend(li);
-            if (elems.simLogList.children.length > 50) elems.simLogList.lastChild.remove();
-        };
-        
-        const adminSocket = io("https://qios-2.onrender.com", { transports: ['websocket'] });
+// Default route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 
-        adminSocket.on('connect', () => {
-            elems.simLogList.innerHTML = '';
-            addLogEntry({ type: 'info', message: 'Admin panel connected to Back Office...' });
-            adminSocket.emit('register_admin');
-        });
-        
-        adminSocket.on('system_update', (data) => {
-            elems.nodes.textContent = data.nodeCount;
-        });
+// Health check route
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK' });
+});
 
-        adminSocket.on('log_message', (log) => { addLogEntry(log); });
-        adminSocket.on('disconnect', () => { addLogEntry({ type: 'warn', message: 'Connection to Back Office lost.' }); });
-    });
-</script>
-</body>
-</html>
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
