@@ -8,7 +8,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Default route - serve admin.html for /admin
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin_panel.html.html'));
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 // Health check route
@@ -19,3 +19,4 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
+
