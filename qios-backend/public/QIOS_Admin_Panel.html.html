@@ -3,439 +3,456 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QIOS - Quantum Command Deck</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>CHIPS Protocol Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #000000;
-            --primary-glow: #00eaff;
-            --secondary-glow: #ff00ff;
-            --panel-bg: rgba(10, 25, 47, 0.75);
-            --border-color: rgba(0, 234, 255, 0.3);
-            --text-primary: #e0f2fe;
-            --text-secondary: #7dd3fc;
-            --font-display: 'Orbitron', sans-serif;
-            --font-mono: 'Roboto Mono', monospace;
+            --bg-color: #111827;
+            --panel-bg-color: rgba(31, 41, 55, 0.5);
+            --border-color: rgba(56, 189, 248, 0.2);
+            --text-primary: #e5e7eb;
+            --text-secondary: #9ca3af;
+            --accent-cyan: #00f2ea;
+            --accent-blue: #3b82f6;
+            --accent-red: #f43f5e;
+            --accent-green: #34d399;
+            --accent-purple: #a78bfa;
+            --font-family: 'Poppins', sans-serif;
         }
+
         *, *::before, *::after { box-sizing: border-box; }
+
         body {
-            font-family: var(--font-mono);
+            font-family: var(--font-family);
             background-color: var(--bg-color);
-            color: var(--text-primary);
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             background-image: 
-                radial-gradient(circle at 1% 1%, rgba(0, 234, 255, 0.2) 0px, transparent 20%),
-                radial-gradient(circle at 99% 99%, rgba(255, 0, 255, 0.15) 0px, transparent 25%);
+                url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Cg fill-rule="evenodd"%3E%3Cg fill="%231f2937" fill-opacity="0.4"%3E%3Cpath opacity=".5" d="M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z"/%3E%3Cpath d="M6 5V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4H6v-4H0v-1h6v-4H0v-1h6v-4H0v-1h6v-4H0v-1h6v-4H0v-1h6v-4H0v-1h6v-4H0v-1h6v-4H0v-1h6v-4H0v-1h6v-4H0v-1h6V6h4V0h1v6h4V0h1v6h4V0h1v6h4V0h1v6h4V0h1v6h4V0h1v6h4V0h1v6h4V0h1v6h4V0h1v6h4V0h1v6h4V0h1v6h4V6h1v-1h-1V0h-1v5h-4v1h4v4h-4v1h4v4h-4v1h4v4h-4v1h4v4h-4v1h4v4h-4v1h4v4h-4v1h4v4h-4v1h4v4h-4v1h4v4h-4v1h4v4h-4v1h4v4h-4v1h4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4H7v-4H6v-1h1v4h4v-4h1v4h4v-4h1v4h4v-4h1v4h4v-4h1v4h4v-4h1v4h4v-4h1v4h4v-4h1v4h4v-4h1v4h4v-4h1v4h4v-4h1v4h4v-4h1v4h4v-4h1v4h4v-4h1v4h4v-1h-4v-4h4v-1h-4v-4h4v-1h-4v-4h4v-1h-4v-4h4v-1h-4v-4h4v-1h-4v-4h4v-1h-4v-4h4v-1h-4v-4h4v-1h-4v-4h4v-1h-4v-4h4V6h1V5h-1v1h-4v4h4v1h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4h-1v-4h-4v4H6v-4H5v1h1v4H5v1h1v4H5v1h1v4H5v1h1v4H5v1h1v4H5v1h1v4H5v1h1v4H5v1h1v4H5v1h1v4H5v1h1v4H5v1h1v4H5v-1h-1v-4H0v-1h5v-4H0v-1h5v-4H0v-1h5v-4H0v-1h5v-4H0v-1h5v-4H0v-1h5v-4H0v-1h5v-4H0v-1h5v-4H0v-1h5v-4H0V6h1V5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5Z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E'),
+                radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.15) 0%, transparent 35%),
+                radial-gradient(circle at 85% 75%, rgba(0, 242, 234, 0.1) 0%, transparent 40%);
+            color: var(--text-primary);
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             overflow: hidden;
         }
-        .main-container {
-            width: 95%;
-            height: 95%;
-            max-width: 1600px;
-            max-height: 900px;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        #display-area {
-            flex-grow: 1;
-            position: relative;
-        }
-        .view {
-            position: absolute;
-            inset: 0;
-            background: var(--panel-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 234, 255, 0.2), inset 0 0 15px rgba(0, 234, 255, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 1rem;
-            opacity: 0;
-            transform: scale(0.95);
-            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
-            pointer-events: none;
+
+        .admin-panel {
+            width: 1400px;
+            max-width: 95%;
+            background: rgba(31, 41, 55, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            padding: 2rem;
             display: grid;
-            gap: 1rem;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: auto;
+            gap: 1.5rem;
+            grid-template-areas:
+                "header header header header header header header header header header header header"
+                "stats stats stats stats stats stats stats stats stats stats stats stats"
+                "ai ai ai ai entangle entangle entangle entangle qsim qsim qsim qsim"
+                "ai ai ai ai entangle entangle entangle entangle log log log log"
+                "training training training training stress stress stress stress log log log log";
         }
-        .view.active {
-            opacity: 1;
-            transform: scale(1);
-            pointer-events: auto;
-        }
-        #navigation {
-            flex-shrink: 0;
-            display: flex;
-            justify-content: center;
-            gap: 0.5rem;
-            background: rgba(0,0,0,0.3);
-            padding: 0.5rem;
-            border-radius: 10px;
-        }
-        .nav-btn {
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            font-family: var(--font-display);
-            font-size: 0.9rem;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 0 5px rgba(0, 234, 255, 0.2);
-        }
-        .nav-btn:hover {
-            background: rgba(0, 234, 255, 0.2);
-            color: white;
-            box-shadow: 0 0 15px rgba(0, 234, 255, 0.5);
-        }
-        .nav-btn.active {
-            background: var(--primary-glow);
-            color: black;
-            font-weight: 700;
-        }
+
         .panel {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            padding: 0.75rem;
+            background: var(--panel-bg-color);
+            border: 1px solid rgba(56, 189, 248, 0.1);
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: inset 0 1px 2px 0 rgba(255, 255, 255, 0.05);
             display: flex;
             flex-direction: column;
         }
+        
         .panel-title {
-            font-family: var(--font-display);
-            font-size: 0.8rem;
-            text-transform: uppercase;
+            font-size: 1rem;
+            font-weight: 500;
             color: var(--text-secondary);
-            margin: 0 0 0.75rem 0;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--border-color);
+            margin: 0 0 1rem 0;
         }
-        canvas { display: block; width: 100%; height: 100%; }
-        /* Common styles for charts and meters */
-        .chart-container { flex-grow: 1; position: relative; }
-        .progress-circle { position: relative; display: flex; align-items: center; justify-content: center; }
-        .progress-circle-text { position: absolute; font-family:var(--font-display); font-size: 1.5rem; font-weight: 700; }
-        /* Specific view styles */
-        #pairing-monitor-view { grid-template-columns: 2fr 5fr 3fr; }
-        #nodes-interface-view { grid-template-columns: 2fr 5fr 3fr; }
-        #guardian-interface-view { grid-template-columns: 3fr 4fr 3fr; }
-        #programming-interface-view { grid-template-columns: 3fr 5fr 4fr; }
-        /* Module specific views */
-        #speed-module-view, #dense-coding-module-view, #qkd-module-view { grid-template-columns: 3fr 4fr 3fr; }
-        .glowing-text-primary { text-shadow: 0 0 8px var(--primary-glow); }
-        .glowing-text-secondary { text-shadow: 0 0 8px var(--secondary-glow); }
-        .status-bar { height: 20px; background: rgba(0,0,0,0.4); border-radius: 10px; padding: 3px; }
-        .status-bar-inner { height: 100%; background: linear-gradient(90deg, var(--primary-glow), var(--secondary-glow)); border-radius: 7px; box-shadow: 0 0 10px var(--primary-glow); }
-        .data-table { font-size: 0.8rem; } .data-table tr td:first-child { color: var(--text-secondary); }
+
+        /* Grid Area Assignments */
+        #header { grid-area: header; background: none; border: none; padding: 0; box-shadow: none; }
+        #stats-container { grid-area: stats; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; padding: 0 !important; background: none !important; border: none !important; box-shadow: none !important; }
+        #ai-status { grid-area: ai; }
+        #entanglement { grid-area: entangle; }
+        #q-sim { grid-area: qsim; }
+        #training { grid-area: training; }
+        #stress { grid-area: stress; }
+        #log { grid-area: log; }
+
+        /* Header */
+        #header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: var(--text-primary); }
+        #header p { margin: 0; color: var(--text-secondary); }
+
+        /* Stats Card */
+        .stat-card { background: var(--panel-bg-color); border: 1px solid rgba(56, 189, 248, 0.1); border-radius: 12px; padding: 1.25rem; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto auto; gap: 0.25rem 1rem; }
+        .stat-card-title { grid-column: 1 / 2; color: var(--text-secondary); font-size: 1rem; }
+        .stat-card-main { grid-column: 1 / 2; display: flex; align-items: baseline; gap: 0.5rem; }
+        .stat-card-value { font-size: 1.75rem; font-weight: 600; color: var(--text-primary); line-height: 1; }
+        .stat-card-subtitle { font-size: 0.8rem; color: var(--text-secondary); }
+        .stat-card-index { grid-column: 2 / 3; grid-row: 1 / 4; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 0 1rem; font-size: 1.25rem; font-weight: 600; }
+        .progress-bar { grid-column: 1 / 3; height: 4px; background: rgba(0, 0, 0, 0.3); border-radius: 2px; margin-top: 0.5rem; overflow: hidden; }
+        .progress-bar-inner { height: 100%; width: 50%; border-radius: 2px; transition: width 0.5s ease-in-out, background-color 0.5s ease; }
+
+        /* AI Status Panel */
+        .toggle-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .toggle-label { font-size: 1rem; }
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #374151; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent-blue); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .progress-circle-container { display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; }
+        .progress-circle { position: relative; width: 120px; height: 120px; }
+        .progress-circle-bg, .progress-circle-fg { fill: none; stroke-width: 10; }
+        .progress-circle-bg { stroke: rgba(0, 0, 0, 0.3); }
+        .progress-circle-fg { stroke: var(--accent-cyan); stroke-linecap: round; transform-origin: 50% 50%; transform: rotate(-90deg); transition: stroke-dashoffset 0.5s ease-in-out; filter: drop-shadow(0 0 5px var(--accent-cyan)); }
+        .progress-circle-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.8rem; font-weight: 600; color: var(--text-primary); }
+        .progress-circle-label { text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem; }
+
+        /* Entanglement Panel */
+        #entanglement-viz { display: flex; flex-grow: 1; flex-direction: column; justify-content: center; align-items: center; }
+        #entanglement-svg { width: 100%; height: 100px; }
+        #entanglement-path { stroke: url(#wave-gradient); stroke-width: 3; fill: none; filter: drop-shadow(0 0 8px var(--accent-cyan)); }
+        .data-stream-circle { fill: var(--bg-color); stroke: var(--accent-cyan); stroke-width: 2; filter: drop-shadow(0 0 5px var(--accent-cyan)); }
+        .data-stream-text { fill: var(--text-primary); font-size: 24px; font-weight: 600; text-anchor: middle; alignment-baseline: middle; }
+        .entanglement-buttons { display: flex; gap: 1rem; margin-top: 1rem; width: 100%; }
+        
+        /* General Button & Input Styles */
+        .btn { background: linear-gradient(145deg, #4f5b78, #2a3349); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); filter: brightness(1.2); }
+        .btn.primary { background: linear-gradient(145deg, var(--accent-blue), #2563eb); }
+        .btn.danger { background: linear-gradient(145deg, var(--accent-red), #be123c); }
+        
+        .input-field, .textarea-field { width: 100%; background: #111827; border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; padding: 0.6rem; font-family: var(--font-family); }
+        .textarea-field { resize: none; flex-grow: 1; font-size: 0.8rem; line-height: 1.6; }
+        
+        /* Q Sim Panel */
+        .q-sim-item { margin-bottom: 1.5rem; }
+        .q-sim-item-header { display: flex; justify-content: space-between; align-items: center; }
+        .q-sim-item-title { margin: 0; color: var(--text-primary); font-weight: 500; }
+        .q-sim-item-subtitle { margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
+        .q-sim-item-value { font-size: 1.2rem; color: var(--text-primary); font-weight: 500; }
+        
+        /* Simulation Log */
+        #simulation-log-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow-y: auto; font-size: 0.9rem; }
+        #simulation-log-list li { display: flex; align-items: center; margin-bottom: 0.75rem; opacity: 0; transform: translateX(20px); animation: fadeIn 0.5s forwards; }
+        #simulation-log-list li .checkbox { width: 16px; height: 16px; margin-right: 0.75rem; border: 2px solid; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+        #simulation-log-list li .checkbox svg { width: 10px; height: 10px; stroke-width: 3; stroke: var(--text-primary); }
+        #simulation-log-list li.success { color: var(--accent-green); } #simulation-log-list li.success .checkbox { border-color: var(--accent-green); }
+        #simulation-log-list li.failed { color: var(--accent-red); } #simulation-log-list li.failed .checkbox { border-color: var(--accent-red); }
+        #simulation-log-list li.pending { color: var(--accent-purple); } #simulation-log-list li.pending .checkbox { border-color: var(--accent-purple); }
+        #simulation-log-list li.info { color: var(--accent-blue); } #simulation-log-list li.info .checkbox { border-color: var(--accent-blue); }
+
+        @keyframes fadeIn { to { opacity: 1; transform: translateX(0); } }
+        @keyframes wave { 0% { d: path("M 0 50 Q 75 0, 150 50 T 300 50"); } 50% { d: path("M 0 50 Q 75 100, 150 50 T 300 50"); } 100% { d: path("M 0 50 Q 75 0, 150 50 T 300 50"); } }
+        #entanglement-path.wavy { animation: wave 2s linear infinite; }
     </style>
 </head>
 <body>
 
-    <div class="main-container">
-        <div id="display-area">
-            <!-- Default View: Quantum Pairing Monitor -->
-            <div id="pairing-monitor-view" class="view active">
-                <div class="panel">
-                    <h2 class="panel-title">Pairing Parameters</h2>
-                    <table class="data-table w-full">
-                        <tbody>
-                            <tr><td>Qubit A Active:</td><td class="text-right">1 Aor</td></tr>
-                            <tr><td>Qubit B Active:</td><td class="text-right">1 Bpr</td></tr>
-                            <tr><td>Bandwidth:</td><td class="text-right">1.2 Tbps</td></tr>
-                            <tr><td>Qubit Fidelity:</td><td class="text-right">99.7%</td></tr>
-                            <tr><td>Coherence Time:</td><td class="text-right">12.33s</td></tr>
-                            <tr><td>Entanglement Time:</td><td class="text-right">10.33 fs</td></tr>
-                            <tr><td>Distance:</td><td class="text-right">0 nm (entangled)</td></tr>
-                        </tbody>
-                    </table>
-                    <h2 class="panel-title mt-4">Pairing Stability</h2>
-                    <div class="chart-container"><canvas id="pairing-stability-chart"></canvas></div>
-                </div>
-                <div class="panel flex items-center justify-center relative">
-                    <canvas id="pairing-viz-canvas"></canvas>
-                    <div class="absolute bottom-8 w-4/5 text-center">
-                        <p class="font-display text-lg glowing-text-primary">QUANTUM PAIRING ESTABLISHED</p>
-                        <div class="status-bar mt-2"><div id="pairing-status-bar" class="status-bar-inner" style="width: 100%;"></div></div>
-                    </div>
-                </div>
-                <div class="panel">
-                    <h2 class="panel-title">Correlation Strength</h2>
-                    <div class="progress-circle h-40"><div class="progress-circle-text glowing-text-secondary">99.9%</div><canvas id="correlation-gauge"></canvas></div>
-                    <h2 class="panel-title mt-4">Entanglement Fidelity</h2>
-                    <div class="chart-container"><canvas id="fidelity-chart"></canvas></div>
-                </div>
-            </div>
+    <div class="admin-panel">
+        <div id="header">
+            <h1>CHIPS Protocol Admin Panel</h1>
+            <p>The back office for AI and browser management</p>
+        </div>
 
-            <!-- Interface 1: Decentralized Nodes -->
-            <div id="nodes-interface-view" class="view">
-                <div class="panel">
-                    <h2 class="panel-title">Network Status</h2>
-                    <table class="data-table w-full">
-                        <tbody>
-                            <tr><td>Nodes Online:</td><td class="text-right">237</td></tr>
-                            <tr><td>Avg. Latency:</td><td class="text-right">0.03 ms</td></tr>
-                            <tr><td>Uptime:</td><td class="text-right">99.99%</td></tr>
-                        </tbody>
-                    </table>
-                    <h2 class="panel-title mt-4">Node Authentication</h2>
-                    <div class="chart-container"><canvas id="node-auth-chart"></canvas></div>
+        <div id="stats-container">
+            <div class="stat-card">
+                <div class="stat-card-title">Current Phase</div>
+                <div class="stat-card-main">
+                    <span id="stat-phase-value" class="stat-card-value">1</span>
+                    <span id="stat-phase-subtitle" class="stat-card-subtitle">Scenitas test.6(b)</span>
                 </div>
-                <div class="panel relative"><canvas id="mesh-network-canvas"></canvas><div class="absolute bottom-4 left-4"><h2 class="panel-title">Network Health</h2><div class="status-bar"><div class="status-bar-inner" style="width: 99%;"></div></div></div></div>
-                <div class="panel"><h2 class="panel-title">Node Management</h2><h2 class="panel-title mt-4">Recent Activity</h2></div>
+                <div class="stat-card-index" style="color: var(--accent-green);">1.12</div>
+                <div class="progress-bar"><div id="stat-phase-progress" class="progress-bar-inner" style="background: var(--accent-green);"></div></div>
             </div>
-
-            <!-- Interface 2: Programming -->
-            <div id="programming-interface-view" class="view">
-                <div class="panel"><h2 class="panel-title">Opcodes</h2></div>
-                <div class="panel"><h2 class="panel-title">QPU Item Status</h2><canvas id="circuit-diagram-canvas"></canvas></div>
-                <div class="panel"><h2 class="panel-title">Compilation Output</h2></div>
+            <div class="stat-card">
+                <div class="stat-card-title">Treceability Score</div>
+                 <div class="stat-card-main">
+                    <span id="stat-trace-value" class="stat-card-value">100</span>
+                    <span id="stat-trace-subtitle" class="stat-card-subtitle">Stenios best. 120</span>
+                </div>
+                <div class="stat-card-index" style="color: var(--accent-orange);">1.12</div>
+                <div class="progress-bar"><div id="stat-trace-progress" class="progress-bar-inner" style="background: var(--accent-orange);"></div></div>
             </div>
-
-            <!-- Interface 3: Guardian -->
-            <div id="guardian-interface-view" class="view">
-                 <div class="panel"><h2 class="panel-title">System Status</h2></div>
-                 <div class="panel"><canvas id="guardian-atom-canvas"></canvas></div>
-                 <div class="panel"><h2 class="panel-title">Access & Control</h2></div>
-            </div>
-            
-            <!-- Modules -->
-            <div id="speed-module-view" class="view">
-                <div class="panel"><h2 class="panel-title">Latency & Jitter</h2><div class="chart-container"><canvas id="speed-latency-chart"></canvas></div><div class="chart-container mt-4"><canvas id="speed-jitter-chart"></canvas></div></div>
-                <div class="panel"><h2 class="panel-title">Quantum Network Speed Module</h2></div>
-                <div class="panel"><h2 class="panel-title">Bandwidth Utilization</h2></div>
-            </div>
-            <div id="dense-coding-module-view" class="view">
-                <div class="panel"><h2 class="panel-title">Latency & Jitter</h2></div>
-                <div class="panel"><h2 class="panel-title">Quantum Dense Coding Module</h2></div>
-                <div class="panel"><h2 class="panel-title">Data Comflrillation</h2></div>
-            </div>
-            <div id="qkd-module-view" class="view">
-                <div class="panel"><h2 class="panel-title">Qubit Statie Parameters</h2></div>
-                <div class="panel"><h2 class="panel-title">Quantum Key Distribution Module</h2></div>
-                <div class="panel"><h2 class="panel-title">Security Audit</h2></div>
+            <div class="stat-card">
+                <div class="stat-card-title">Contradiction Index</div>
+                 <div class="stat-card-main">
+                    <span id="stat-contra-value" class="stat-card-value">600</span>
+                    <span id="stat-contra-subtitle" class="stat-card-subtitle">Senios oec. 600</span>
+                </div>
+                <div class="stat-card-index" style="color: var(--accent-red);">1.2</div>
+                <div class="progress-bar"><div id="stat-contra-progress" class="progress-bar-inner" style="background: var(--accent-red);"></div></div>
             </div>
         </div>
 
-        <nav id="navigation">
-            <button class="nav-btn active" data-view="pairing-monitor-view">QPU Core</button>
-            <div style="border-left: 2px solid var(--border-color); margin: 0 0.5rem;"></div>
-            <button class="nav-btn" data-view="nodes-interface-view">Nodes Interface</button>
-            <button class="nav-btn" data-view="programming-interface-view">Programming Interface</button>
-            <button class="nav-btn" data-view="guardian-interface-view">Guardian Interface</button>
-            <div style="border-left: 2px solid var(--border-color); margin: 0 0.5rem;"></div>
-            <button class="nav-btn" data-view="speed-module-view">Speed Module</button>
-            <button class="nav-btn" data-view="dense-coding-module-view">Dense Coding</button>
-            <button class="nav-btn" data-view="qkd-module-view">QKD</button>
-        </nav>
+        <div id="ai-status" class="panel">
+            <h2 class="panel-title">AI Status & Progress</h2>
+            <div class="toggle-group">
+                <span class="toggle-label">Enable AI-Assisted Browsing</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-group">
+                <span class="toggle-label">Permissionless Data Access</span>
+                 <label class="toggle-switch">
+                    <input type="checkbox">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="progress-circle-container">
+                <div class="progress-circle">
+                    <svg viewBox="0 0 120 120" width="120" height="120">
+                        <circle class="progress-circle-bg" cx="60" cy="60" r="50"></circle>
+                        <circle id="sanitization-progress-fg" class="progress-circle-fg" cx="60" cy="60" r="50"></circle>
+                    </svg>
+                    <div id="sanitization-progress-text" class="progress-circle-text">95%</div>
+                </div>
+                <p class="progress-circle-label">Data Sanitization Rate</p>
+            </div>
+        </div>
+
+        <div id="entanglement" class="panel">
+            <h2 class="panel-title">Quantum Entanglement & Data Coherence</h2>
+            <div id="entanglement-viz">
+                <svg id="entanglement-svg" viewBox="0 0 300 100">
+                    <defs>
+                        <linearGradient id="wave-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#00f2ea;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <path id="entanglement-path" d="M 0 50 Q 75 50, 150 50 T 300 50"></path>
+                    <g>
+                        <circle class="data-stream-circle" cx="75" cy="50" r="25"></circle>
+                        <text id="data-stream-a" class="data-stream-text" x="75" y="50">42</text>
+                    </g>
+                    <g>
+                        <circle class="data-stream-circle" cx="225" cy="50" r="25"></circle>
+                        <text id="data-stream-b" class="data-stream-text" x="225" y="50">42</text>
+                    </g>
+                </svg>
+            </div>
+             <div class="entanglement-buttons">
+                <button id="establish-link-btn" class="btn primary" style="width: 50%;">Establish Entangled Link</button>
+                <button id="coherence-check-btn" class="btn" style="width: 50%;">Run Coherence Check</button>
+            </div>
+        </div>
+        
+        <div id="q-sim" class="panel">
+            <h2 class="panel-title">Quantum Simulations</h2>
+            <div class="q-sim-item">
+                <div class="q-sim-item-header">
+                    <div>
+                        <p class="q-sim-item-title">Quantum Tunnelling Simulation</p>
+                        <p class="q-sim-item-subtitle">Dest Santasion Rote</p>
+                    </div>
+                    <span id="tunnelling-rate" class="q-sim-item-value">95%</span>
+                </div>
+            </div>
+             <div class="q-sim-item">
+                 <div class="q-sim-item-header">
+                    <div>
+                        <p class="q-sim-item-title">Quantum Tunnelling Simulation</p>
+                        <p class="q-sim-item-subtitle">Trinitios Protectiong</p>
+                    </div>
+                    <label class="toggle-switch" style="margin-left: 1rem;"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+            </div>
+            <button id="initiate-tunnel-btn" class="btn" style="margin-top: auto;">Initiate Tunnel</button>
+        </div>
+        
+        <div id="training" class="panel">
+             <h2 class="panel-title">Simulation & Training</h2>
+             <textarea id="training-log" class="textarea-field" readonly>Initializing training environment...
+Loading pre-trained Guardian AI model v1.12...
+Compiling Q-Language libraries for protocol simulation...
+Dataset loaded: 1.2M quantum circuit simulations.
+Starting training epoch 1/100...</textarea>
+        </div>
+
+        <div id="stress" class="panel">
+             <h2 class="panel-title">Integrity & Stress Testing</h2>
+             <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0 0 1rem 0;">Inject Vals Data</p>
+             <input type="text" class="input-field" placeholder="Enter AI lossene for Stream B">
+             <button class="btn" style="align-self: flex-end;">Inject</button>
+        </div>
+
+        <div id="log" class="panel">
+             <h2 class="panel-title">Simulation Log</h2>
+             <ul id="simulation-log-list">
+             </ul>
+        </div>
     </div>
 
 <script>
-    // --- Chart.js Global Config ---
-    Chart.defaults.font.family = 'Roboto Mono, monospace';
-    Chart.defaults.color = '#7dd3fc';
-    Chart.defaults.borderColor = 'rgba(0, 234, 255, 0.2)';
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Element Selectors ---
+        const elems = {
+            phase: { val: document.getElementById('stat-phase-value'), prog: document.getElementById('stat-phase-progress') },
+            trace: { val: document.getElementById('stat-trace-value'), prog: document.getElementById('stat-trace-progress') },
+            contra: { val: document.getElementById('stat-contra-value'), prog: document.getElementById('stat-contra-progress') },
+            sanitization: { fg: document.getElementById('sanitization-progress-fg'), text: document.getElementById('sanitization-progress-text') },
+            entanglement: { path: document.getElementById('entanglement-path'), streamA: document.getElementById('data-stream-a'), streamB: document.getElementById('data-stream-b') },
+            tunnellingRate: document.getElementById('tunnelling-rate'),
+            trainingLog: document.getElementById('training-log'),
+            simLogList: document.getElementById('simulation-log-list'),
+            establishLinkBtn: document.getElementById('establish-link-btn')
+        };
 
-    // --- Navigation Logic ---
-    const navButtons = document.querySelectorAll('.nav-btn');
-    const views = document.querySelectorAll('.view');
-    let activeViewId = 'pairing-monitor-view';
+        // --- Simulation State ---
+        let state = {
+            traceability: 100,
+            contradiction: 600,
+            sanitizationRate: 95,
+            entangled: false,
+            logCounter: 0
+        };
 
-    navButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const targetViewId = button.dataset.view;
-            if (targetViewId === activeViewId) return;
+        const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 50;
+        
+        const logTemplates = [
+            { type: 'success', text: 'Asewjen testload' },
+            { type: 'success', text: 'Ansinse oetinatand' },
+            { type: 'info', text: 'Praknia omoebrne 2 Dwnbtoas' },
+            { type: 'success', text: 'AI engine generated' },
+            { type: 'success', text: 'AI engine testload' },
+            { type: 'info', text: 'Aswian lunean bwndeck' },
+            { type: 'pending', text: 'Resolving cronesteck bias' },
+            { type: 'failed', text: 'Alvaer oinest chsoot [FAILED]' },
+            { type: 'success', text: 'Morphdotcker cleas' },
+            { type: 'info', text: 'Seet Gerincoem Srovidam' }
+        ];
 
-            navButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
+        // --- Helper Functions ---
+        const getRandom = (min, max) => Math.random() * (max - min) + min;
 
-            views.forEach(view => view.classList.remove('active'));
-            document.getElementById(targetViewId).classList.add('active');
-            activeViewId = targetViewId;
-        });
-    });
+        const updateCircularProgress = (percent) => {
+            const offset = CIRCLE_CIRCUMFERENCE - (percent / 100) * CIRCLE_CIRCUMFERENCE;
+            elems.sanitization.fg.style.strokeDasharray = CIRCLE_CIRCUMFERENCE;
+            elems.sanitization.fg.style.strokeDashoffset = offset;
+            elems.sanitization.text.textContent = `${Math.round(percent)}%`;
+        };
 
-    // --- Live Chart & Canvas Drawing ---
-    function createLineChart(ctx, label) {
-        return new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: Array.from({length: 10}, (_, i) => i + 1),
-                datasets: [{
-                    label: label,
-                    data: Array.from({length: 10}, () => Math.random() * 80 + 10),
-                    borderColor: '#00eaff',
-                    backgroundColor: 'rgba(0, 234, 255, 0.2)',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0
-                }]
-            },
-            options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
-        });
-    }
+        const addLogEntry = (entry) => {
+            const { type, text } = entry;
+            const li = document.createElement('li');
+            li.className = type;
+            
+            const checkSVG = `<svg viewBox="0 0 16 16"><path fill="none" d="M3.5 8.5l3 3l6-6"/></svg>`;
 
-    function createBarChart(ctx, label) {
-        return new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: Array.from({length: 6}, (_, i) => i + 1),
-                datasets: [{
-                    label: label,
-                    data: Array.from({length: 6}, () => Math.random() * 80 + 10),
-                    backgroundColor: ['#ff00ff', '#00eaff', '#ff00ff', '#00eaff', '#ff00ff', '#00eaff'],
-                }]
-            },
-            options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
-        });
-    }
-    
-    function createDoughnutGauge(ctx, color) {
-        return new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                datasets: [{
-                    data: [99.9, 0.1],
-                    backgroundColor: [color, 'rgba(0,0,0,0.2)'],
-                    borderColor: 'transparent',
-                    circumference: 270,
-                    rotation: -135
-                }]
-            },
-            options: { maintainAspectRatio: false, cutout: '80%', plugins: { tooltip: { enabled: false } } }
-        });
-    }
+            li.innerHTML = `<div class="checkbox">${type === 'success' ? checkSVG : ''}</div><span>${text}</span>`;
+            elems.simLogList.prepend(li);
+            if (elems.simLogList.children.length > 9) {
+                elems.simLogList.lastChild.remove();
+            }
+        };
 
-    // Initialize charts
-    const pairingStabilityChart = createLineChart(document.getElementById('pairing-stability-chart').getContext('2d'), 'Stability');
-    const fidelityChart = createBarChart(document.getElementById('fidelity-chart').getContext('2d'), 'Fidelity');
-    const correlationGauge = createDoughnutGauge(document.getElementById('correlation-gauge').getContext('2d'), '#ff00ff');
-    const nodeAuthChart = createLineChart(document.getElementById('node-auth-chart').getContext('2d'), 'Authentication');
-    const speedLatencyChart = createBarChart(document.getElementById('speed-latency-chart').getContext('2d'), 'Latency');
-    const speedJitterChart = createLineChart(document.getElementById('speed-jitter-chart').getContext('2d'), 'Jitter');
+        const updateTrainingLog = () => {
+             const trainingMessages = [
+                "Running backpropagation on Guardian AI model...",
+                "Epoch 25/100 complete. Loss: 0.1345. Accuracy: 98.2%.",
+                "Simulating quantum protocol for vulnerability analysis...",
+                "Generating new Q-language library based on simulation results.",
+                "Self-optimization routine initiated: Analyzing network latency.",
+                "AI has identified a potential bottleneck in the coherence check protocol.",
+                "Synthesizing new dataset for adversarial training.",
+                "Model convergence achieved. Deploying updated Guardian AI profile."
+            ];
+            const timestamp = new Date().toLocaleTimeString();
+            const message = trainingMessages[Math.floor(getRandom(0, trainingMessages.length))];
+            elems.trainingLog.value = `[${timestamp}] ${message}\n` + elems.trainingLog.value;
+            if (elems.trainingLog.value.split('\n').length > 50) {
+                elems.trainingLog.value = elems.trainingLog.value.split('\n').slice(0, 50).join('\n');
+            }
+        };
 
-    // --- Canvas Animations ---
-    
-    // Pairing Visualization
-    const pairingCanvas = document.getElementById('pairing-viz-canvas');
-    const pairingCtx = pairingCanvas.getContext('2d');
-    let pairingParticles = [];
-    function setupPairingViz() {
-        pairingCanvas.width = pairingCanvas.offsetWidth;
-        pairingCanvas.height = pairingCanvas.offsetHeight;
-        pairingParticles = [];
-        for (let i = 0; i < 200; i++) {
-            pairingParticles.push({
-                x: Math.random() * pairingCanvas.width,
-                y: Math.random() * pairingCanvas.height,
-                vx: (Math.random() - 0.5) * 0.5,
-                vy: (Math.random() - 0.5) * 0.5,
-                radius: Math.random() * 1.5 + 0.5,
-                color: Math.random() > 0.5 ? 'rgba(255, 0, 255, 0.8)' : 'rgba(0, 234, 255, 0.8)'
-            });
-        }
-    }
-    
-    // Mesh Network
-    const meshCanvas = document.getElementById('mesh-network-canvas');
-    const meshCtx = meshCanvas.getContext('2d');
-    let nodes = [];
-    function setupMeshNetwork() {
-        meshCanvas.width = meshCanvas.offsetWidth;
-        meshCanvas.height = meshCanvas.offsetHeight;
-        nodes = [];
-        for (let i = 0; i < 30; i++) {
-            nodes.push({
-                x: Math.random() * meshCanvas.width,
-                y: Math.random() * meshCanvas.height,
-                vx: (Math.random() - 0.5) * 0.3,
-                vy: (Math.random() - 0.5) * 0.3,
-                radius: Math.random() * 3 + 2,
-                color: Math.random() > 0.5 ? '#ff00ff' : '#00eaff'
-            });
-        }
-    }
-    
-    // Guardian Atom
-    const atomCanvas = document.getElementById('guardian-atom-canvas');
-    const atomCtx = atomCanvas.getContext('2d');
-    let angle = 0;
+        // --- Main Simulation Loop ---
+        const mainLoop = () => {
+            // Update Stats
+            state.traceability += getRandom(-1, 1);
+            state.contradiction += getRandom(-2, 2);
+            state.traceability = Math.max(80, Math.min(120, state.traceability));
+            state.contradiction = Math.max(580, Math.min(620, state.contradiction));
 
-    // --- Main Animation Loop ---
-    function animate() {
-        // Pairing Viz
-        pairingCtx.clearRect(0, 0, pairingCanvas.width, pairingCanvas.height);
-        let center_x = pairingCanvas.width / 2;
-        let center_y = pairingCanvas.height / 2;
-        pairingParticles.forEach(p => {
-            p.x += p.vx; p.y += p.vy;
-            if (p.x < 0 || p.x > pairingCanvas.width) p.vx *= -1;
-            if (p.y < 0 || p.y > pairingCanvas.height) p.vy *= -1;
-            pairingCtx.beginPath(); pairingCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-            pairingCtx.fillStyle = p.color; pairingCtx.fill();
-        });
+            elems.trace.val.textContent = Math.round(state.traceability);
+            elems.trace.prog.style.width = `${(state.traceability / 120) * 100}%`;
+            elems.contra.val.textContent = Math.round(state.contradiction);
+            elems.contra.prog.style.width = `${(state.contradiction / 620) * 100}%`;
+            elems.phase.prog.style.width = `${getRandom(30, 90)}%`;
 
-        // Mesh Network
-        meshCtx.clearRect(0, 0, meshCanvas.width, meshCanvas.height);
-        nodes.forEach((node, i) => {
-            node.x += node.vx; node.y += node.vy;
-            if (node.x < 0 || node.x > meshCanvas.width) node.vx *= -1;
-            if (node.y < 0 || node.y > meshCanvas.height) node.vy *= -1;
-            meshCtx.beginPath(); meshCtx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-            meshCtx.fillStyle = node.color; meshCtx.fill();
-            for(let j = i + 1; j < nodes.length; j++) {
-                let dist = Math.hypot(nodes[j].x - node.x, nodes[j].y - node.y);
-                if (dist < 150) {
-                    meshCtx.beginPath(); meshCtx.moveTo(node.x, node.y); meshCtx.lineTo(nodes[j].x, nodes[j].y);
-                    meshCtx.strokeStyle = `rgba(0, 234, 255, ${1 - dist / 150})`; meshCtx.stroke();
-                }
+            // Update AI Sanitization Progress
+            state.sanitizationRate += getRandom(-0.25, 0.25);
+            state.sanitizationRate = Math.max(90, Math.min(100, state.sanitizationRate));
+            updateCircularProgress(state.sanitizationRate);
+            
+            // Update Tunnelling Rate
+            elems.tunnellingRate.textContent = `${Math.round(getRandom(93, 97))}%`;
+
+            // Update Entanglement Data Streams if entangled
+            if (state.entangled) {
+                const value = Math.round(getRandom(35, 49));
+                elems.entanglement.streamA.textContent = value;
+                elems.entanglement.streamB.textContent = value; // Correlated state
+            }
+
+            // Add new entry to Simulation Log periodically
+            if(Math.random() > 0.5) {
+                addLogEntry(logTemplates[state.logCounter % logTemplates.length]);
+                state.logCounter++;
+            }
+            
+            // Update Training Log periodically
+            if(Math.random() > 0.7) {
+                updateTrainingLog();
+            }
+        };
+
+        // --- Event Listeners ---
+        elems.establishLinkBtn.addEventListener('click', () => {
+            state.entangled = !state.entangled;
+            if (state.entangled) {
+                addLogEntry({ type: 'info', text: 'Orchestrating Entangled Link...' });
+                elems.entanglement.path.classList.add('wavy');
+                elems.establishLinkBtn.textContent = 'Sever Entangled Link';
+                elems.establishLinkBtn.classList.remove('primary');
+                elems.establishLinkBtn.classList.add('danger');
+            } else {
+                addLogEntry({ type: 'info', text: 'Entangled Link Severed.' });
+                elems.entanglement.path.classList.remove('wavy');
+                elems.entanglement.streamA.textContent = '42'; // Reset
+                elems.entanglement.streamB.textContent = '42'; // Reset
+                elems.establishLinkBtn.textContent = 'Establish Entangled Link';
+                elems.establishLinkBtn.classList.remove('danger');
+                elems.establishLinkBtn.classList.add('primary');
             }
         });
-        
-        // Guardian Atom
-        atomCtx.clearRect(0, 0, atomCanvas.width, atomCanvas.height);
-        let atom_cx = atomCanvas.width / 2; let atom_cy = atomCanvas.height / 2;
-        atomCtx.strokeStyle = '#00eaff'; atomCtx.lineWidth = 1;
-        atomCtx.beginPath(); atomCtx.ellipse(atom_cx, atom_cy, 80, 20, angle, 0, Math.PI * 2); atomCtx.stroke();
-        atomCtx.beginPath(); atomCtx.ellipse(atom_cx, atom_cy, 20, 80, angle, 0, Math.PI * 2); atomCtx.stroke();
-        angle += 0.01;
 
-        requestAnimationFrame(animate);
-    }
+        // --- Initialization ---
+        const init = () => {
+            updateCircularProgress(state.sanitizationRate);
+            // Pre-fill the log
+            for (let i = 0; i < logTemplates.length; i++) {
+                 setTimeout(() => addLogEntry(logTemplates[i]), i * 150);
+            }
+            setInterval(mainLoop, 2500); // Run loop every 2.5 seconds
+        };
 
-    // --- Data Update Loop ---
-    function updateData() {
-        // Update line charts
-        pairingStabilityChart.data.datasets[0].data.shift();
-        pairingStabilityChart.data.datasets[0].data.push(Math.random() * 80 + 10);
-        pairingStabilityChart.update('none');
-        nodeAuthChart.data.datasets[0].data.shift();
-        nodeAuthChart.data.datasets[0].data.push(Math.random() * 80 + 10);
-        nodeAuthChart.update('none');
-
-        // Update bar charts
-        fidelityChart.data.datasets[0].data = Array.from({length: 6}, () => Math.random() * 80 + 10);
-        fidelityChart.update('none');
-    }
-    
-    // Initial Setup
-    setupPairingViz();
-    setupMeshNetwork();
-    animate();
-    setInterval(updateData, 2000);
-
-    // Handle window resize
-    window.addEventListener('resize', () => {
-        setupPairingViz();
-        setupMeshNetwork();
+        init();
     });
-
 </script>
+
 </body>
 </html>
