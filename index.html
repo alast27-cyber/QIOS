@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QCOS Holographic Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "recharts": "https://aistudiocdn.com/recharts@^3.2.1",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.23.0"
+  }
+}
+</script>
+    <style>
+      #animated-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+      }
+      .font-mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      @keyframes fade-in-right {
+        from {
+          opacity: 0;
+          transform: translateX(-10px) translateY(-50%);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0) translateY(-50%);
+        }
+      }
+      .animate-fade-in-right {
+        animation: fade-in-right 0.3s ease-out forwards;
+      }
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-fade-in {
+        animation: fade-in 0.5s ease-out forwards;
+      }
+      @keyframes fade-in-up {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fade-in-up 0.5s ease-out forwards;
+      }
+      .holographic-grid {
+        background-image: 
+            linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(rgba(0, 255, 255, 0.15) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 255, 0.15) 1px, transparent 1px);
+        background-size: 5rem 5rem, 5rem 5rem, 1.25rem 1.25rem, 1.25rem 1.25rem;
+      }
+      .transition-holographic {
+        transition: transform 2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* New Animations */
+      @keyframes border-shimmer {
+        0% { border-color: theme('colors.cyan.400 / 70%'); }
+        50% { border-color: theme('colors.cyan.200 / 100%'); }
+        100% { border-color: theme('colors.cyan.400 / 70%'); }
+      }
+      .animate-border-shimmer {
+        animation: border-shimmer 3s infinite linear;
+      }
+      @keyframes scanline {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+      }
+      .scanline-effect::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 255, 255, 0) 0%,
+          rgba(0, 255, 255, 0.1) 50%,
+          rgba(0, 255, 255, 0) 100%
+        );
+        pointer-events: none;
+        animation: scanline 4s linear infinite;
+      }
+      @keyframes vertex-pulse {
+        0%, 100% { transform: scale3d(1, 1, 1); opacity: 0.8; }
+        50% { transform: scale3d(1.5, 1.5, 1.5); opacity: 1; }
+      }
+      .animate-vertex-pulse {
+        animation: vertex-pulse 2s infinite ease-in-out;
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+      }
+      .animate-pulse-node {
+        animation: pulse 2.5s infinite ease-in-out;
+      }
+      @keyframes flow {
+        to {
+          stroke-dashoffset: -20;
+        }
+      }
+      .animate-flow {
+        stroke-dasharray: 10 10;
+        animation: flow 1.5s linear infinite;
+      }
+       @keyframes heat-shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      .heat-shimmer-effect::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          90deg,
+          transparent 20%,
+          rgba(255, 100, 100, 0.3) 50%,
+          transparent 80%
+        );
+        background-size: 200% 100%;
+        animation: heat-shimmer 2s infinite linear;
+        border-radius: 9999px;
+      }
+      @keyframes pulse-bg {
+        0%, 100% { background-color: theme('colors.red.500'); }
+        50% { background-color: theme('colors.red.400'); }
+      }
+      .animate-pulse-bg {
+        animation: pulse-bg 2s infinite ease-in-out;
+      }
+      @keyframes pulse-edge {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
+      }
+      .animate-pulse-edge {
+        animation: pulse-edge 3s infinite ease-in-out;
+      }
+      @keyframes phase-shift {
+        0% { transform: translateZ(0px); opacity: 1; }
+        25% { transform: translateZ(2px); opacity: 0.95; }
+        50% { transform: translateZ(0px); opacity: 1; }
+        75% { transform: translateZ(-2px); opacity: 0.95; }
+        100% { transform: translateZ(0px); opacity: 1; }
+      }
+      .animate-phase-shift {
+        animation: phase-shift 4s infinite ease-in-out;
+      }
+      .holographic-button {
+        transition: all 0.3s ease;
+      }
+      .holographic-button:hover:not(:disabled) {
+        filter: drop-shadow(0 0 10px theme('colors.cyan.300'));
+        transform: scale(1.05);
+        border-color: theme('colors.cyan.300');
+        background-color: theme('colors.cyan.500 / 40%');
+      }
+      @keyframes bloom-pulse {
+        0%, 100% { filter: drop-shadow(0 0 8px theme('colors.cyan.400 / 60%')); }
+        50% { filter: drop-shadow(0 0 16px theme('colors.cyan.300 / 80%')); }
+      }
+      .animate-bloom-pulse {
+        animation: bloom-pulse 3s infinite ease-in-out;
+      }
+
+      /* Application Chip Styles */
+      .app-chip {
+          position: absolute;
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(0, 50, 60, 0.8) 0%, rgba(0, 20, 25, 0.9) 70%);
+          border: 2px solid theme('colors.cyan.400 / 50%');
+          box-shadow: 0 0 10px theme('colors.cyan.500 / 50%'), inset 0 0 8px theme('colors.cyan.600 / 40%');
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          cursor: pointer;
+          transform-style: preserve-3d;
+      }
+      .app-chip::before { /* 3D edge effect */
+          content: '';
+          position: absolute;
+          top: 2px;
+          left: 0;
+          right: 0;
+          bottom: 2px;
+          border-radius: 50%;
+          background: transparent;
+          border: 2px solid theme('colors.cyan.700 / 60%');
+          transform: translateZ(-2px);
+      }
+      .app-chip:hover {
+          transform: scale(1.15) translateZ(15px) !important;
+          border-color: theme('colors.cyan.300');
+          filter: drop-shadow(0 0 15px theme('colors.cyan.300'));
+      }
+      .app-chip .chip-tooltip {
+          position: absolute;
+          bottom: 120%;
+          left: 50%;
+          transform: translateX(-50%);
+          padding: 4px 8px;
+          background: theme('colors.slate.900');
+          color: white;
+          font-size: 12px;
+          border-radius: 4px;
+          white-space: nowrap;
+          opacity: 0;
+          transition: opacity 0.2s;
+          pointer-events: none;
+      }
+      .app-chip:hover .chip-tooltip {
+          opacity: 1;
+      }
+      @keyframes spin-slow {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .animate-spin-slow {
+        animation: spin-slow 3s linear infinite;
+      }
+      @keyframes pulse-bright {
+        0%, 100% {
+          color: theme('colors.cyan.400');
+          text-shadow: 0 0 3px theme('colors.cyan.400 / 50%');
+        }
+        50% {
+          color: theme('colors.cyan.200');
+          text-shadow: 0 0 8px theme('colors.cyan.200 / 80%');
+        }
+      }
+      .animate-pulse-bright {
+        animation: pulse-bright 2s infinite ease-in-out;
+      }
+       @keyframes ring-1-anim {
+        from { transform: rotateY(0deg) rotateX(20deg) rotateZ(5deg); }
+        to { transform: rotateY(360deg) rotateX(20deg) rotateZ(5deg); }
+      }
+      .animate-ring-1 { animation: ring-1-anim 20s linear infinite; }
+
+      @keyframes ring-2-anim {
+        from { transform: rotateX(85deg) rotateY(0deg); }
+        to { transform: rotateX(85deg) rotateY(360deg); }
+      }
+      .animate-ring-2 { animation: ring-2-anim 28s linear infinite reverse; }
+
+      @keyframes ring-3-anim {
+        from { transform: rotateZ(70deg) rotateX(0deg) rotateY(25deg); }
+        to { transform: rotateZ(70deg) rotateX(-360deg) rotateY(25deg); }
+      }
+      .animate-ring-3 { animation: ring-3-anim 35s linear infinite; }
+    </style>
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-black overflow-hidden">
+    <canvas id="animated-bg"></canvas>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

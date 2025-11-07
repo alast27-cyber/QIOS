@@ -1,0 +1,7 @@
+{
+  "name": "QCOS Holographic Dashboard",
+  "description": "A holographic, 12-dimensional interface for the QCOS (Quantum Computing Operations System).",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
